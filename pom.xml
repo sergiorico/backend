@@ -1,0 +1,182 @@
+<project>
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- project coordinates, i.e. a group of values which
+    uniquely identify this project -->
+
+    <groupId>se.lth.cs</groupId>
+    <artifactId>connect</artifactId>
+    <version>1.0.0</version>
+
+    <properties>
+        <!-- set entry point here -->
+        <main.class>se.lth.cs.connect.Connect</main.class>
+
+        <packaging.type>jar</packaging.type>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+
+        <!-- pippo (framework) and slf4j (logger) versions -->
+        <pippo.version>0.8.0</pippo.version>
+        <slf4j.version>1.7.7</slf4j.version>
+    </properties>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <!-- allow java8 features (mainly lambda expressions) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.5.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <optimize>true</optimize>
+                    <encoding>UTF-8</encoding>
+                    <showWarnings>true</showWarnings>
+                    <showDeprecation>true</showDeprecation>
+                </configuration>
+                <inherited>true</inherited>
+            </plugin>
+
+            <!-- bundle dependencies and server together -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.3</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>
+                            src/main/assembly/assembly.xml
+                        </descriptor>
+                    </descriptors>
+                    <appendAssemblyId>false</appendAssemblyId>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attached</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- put dependencies in the lib/ folder -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.3.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>${main.class}</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- allow execution without packaging; mvn compile exec:java -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.4.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>${main.class}</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <!-- pippo <all> dependency coordinates, could slim this down to
+        individual depedencies later on when feature set is known -->
+        <dependency>
+            <groupId>ro.pippo</groupId>
+            <artifactId>pippo-core</artifactId>
+            <version>${pippo.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ro.pippo</groupId>
+            <artifactId>pippo-jetty</artifactId>
+            <version>${pippo.version}</version>
+        </dependency>
+         <dependency>
+            <groupId>ro.pippo</groupId>
+            <artifactId>pippo-jackson</artifactId>
+            <version>${pippo.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ro.pippo</groupId>
+            <artifactId>pippo-session-cookie</artifactId>
+            <version>${pippo.version}</version>
+            <type>pom</type>
+        </dependency>
+
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- neo4j/cypher querying: jcypher -->
+        <dependency>
+            <groupId>net.iot-solutions.graphdb</groupId>
+            <artifactId>jcypher</artifactId>
+            <version>3.3.1</version>
+
+            <!-- We don't need stuff for embedded or in-memory db access -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.neo4j</groupId>
+                    <artifactId>neo4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.neo4j</groupId>
+                    <artifactId>neo4j-kernel</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.neo4j</groupId>
+                    <artifactId>neo4j-io</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- scrypt library for password needs -->
+        <dependency>
+            <groupId>com.lambdaworks</groupId>
+            <artifactId>scrypt</artifactId>
+            <version>1.4.0</version>
+        </dependency>
+
+        <!-- JavaMail extension -->
+    	<dependency>
+			<groupId>javax.mail</groupId>
+			<artifactId>mail</artifactId>
+			<version>1.4.7</version>
+		</dependency>
+
+    </dependencies>
+
+</project>
