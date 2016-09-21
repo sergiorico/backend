@@ -150,11 +150,14 @@ public class Account extends BackendRouter {
         // GET api.serp.se/v1/account/reset-password?token=igotmypermitrighthere HTTP/1.1
         GET("/reset-password", (rc) -> {
             String token = rc.getParameter("token").toString();
-            AccountSystem.Account user = AccountSystem.resetPassword(token);
 
             if (rc.getParameter("token").isEmpty())
-                throw new RequestException("Invalid token: " + token);
+                throw new RequestException("Must provide a reset token");
 
+            AccountSystem.Account user = AccountSystem.resetPassword(token);
+            if (user == null)
+            	throw new RequestException("Invalid reset token!");
+            
             String message = resetPasswordSuccessTemplate.replace("{password}", user.password);
 
             Mailman.sendEmail(user.email, "Password reset", message);
