@@ -161,8 +161,12 @@ public class Account extends BackendRouter {
             String message = resetPasswordSuccessTemplate.replace("{password}", user.password);
 
             Mailman.sendEmail(user.email, "Password reset", message);
+            
+            
+            rc.resetSession();
+            rc.setSession("email", user.email);
+            rc.redirect(frontend + "/profile.html");
 
-            rc.getResponse().ok();
         });
 
         // GET api.serp.se/v1/account/verify?token=verifyaccounttoken HTTP/1.1
