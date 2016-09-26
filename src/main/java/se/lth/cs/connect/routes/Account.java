@@ -87,10 +87,10 @@ public class Account extends BackendRouter {
             String passw = rc.getParameter("passw").toString();
 
             if (rc.getParameter("email").isEmpty())
-                throw new RequestException("Must provide an 'email'");
+                throw new RequestException("Must provide an email using 'email'");
 
             if (rc.getParameter("passw").isEmpty())
-                throw new RequestException("Must provide a 'passw'");
+                throw new RequestException("Must provide a password using 'passw'");
 
             if (AccountSystem.authenticate(email, passw)) {
                 rc.resetSession();
@@ -108,10 +108,10 @@ public class Account extends BackendRouter {
             String passw = rc.getParameter("passw").toString();
 
             if (rc.getParameter("email").isEmpty())
-                throw new RequestException("Must specify an email address.");
+                throw new RequestException("Must specify an email address using 'email'.");
 
             if (rc.getParameter("passw").isEmpty())
-                throw new RequestException("Must specify a password.");
+                throw new RequestException("Must specify a password using 'passw'.");
 
             if (!AccountSystem.createAccount(email, passw, TrustLevel.REGISTERED))
                 throw new RequestException("Email is already registered.");
@@ -133,7 +133,7 @@ public class Account extends BackendRouter {
             String email = rc.getParameter("email").toString();
 
             if (rc.getParameter("email").isEmpty()) {
-                throw new RequestException("Must provide an ?email=...");
+                throw new RequestException("Must provide an email.");
             } else if (AccountSystem.findByEmail(email) == null) {
                 throw new RequestException("Email is not registered.");
             } else {
@@ -174,7 +174,7 @@ public class Account extends BackendRouter {
             String token = rc.getParameter("token").toString();
 
             if (rc.getParameter("token").isEmpty())
-                throw new RequestException("Must provide a ?token=...");
+                throw new RequestException("Must provide a token.");
 
             String email = AccountSystem.verifyEmail(token);
             if (email == null)
