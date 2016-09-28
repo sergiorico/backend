@@ -249,6 +249,20 @@ public class Collection extends BackendRouter {
                 WHERE.valueOf(coll.id()).EQUALS(id),
                 DO.DELETE(rel)
             });
+            
+            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                    MATCH.node(coll).label("collection")
+                        .relation()
+                        .node(user).label("user"),
+                    WHERE.valueOf(coll.id()).EQUALS(id),
+                    RETURN.value(user)
+                });
+            
+            if (res.resultOf(user).size() == 0){
+            	Database.query(rc.getLocal("db"), new IClause[]{
+            		DO.DELETE(coll)	
+            	});
+            }
 
             rc.getResponse().ok();
         });
