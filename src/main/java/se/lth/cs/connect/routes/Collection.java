@@ -194,7 +194,7 @@ public class Collection extends BackendRouter {
 
             JcNode coll = new JcNode("coll");
 
-            JcQueryResult res = Database.query(Database.access(), new IClause[]{
+            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node().label("user").property("email").value(email)
                     .relation().out().type("MEMBER_OF")
                     .node(coll).label("collection"),
@@ -219,7 +219,7 @@ public class Collection extends BackendRouter {
                 JcNode coll = new JcNode("coll");
 
                 // Use MERGE so we don't end up with multiple invites per user
-                JcQueryResult res = Database.query(Database.access(), new IClause[]{
+                JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                     MATCH.node(user).label("user").property("email").value(email),
                     MATCH.node(coll).label("collection"),
                     WHERE.valueOf(coll.id()).EQUALS(id),
@@ -242,7 +242,7 @@ public class Collection extends BackendRouter {
             JcNode coll = new JcNode("coll");
             JcRelation rel = new JcRelation("connection");
 
-            Database.query(Database.access(), new IClause[]{
+            Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node(user).label("user").property("email").value(email)
                     .relation(rel)
                     .node(coll).label("collection"),
@@ -250,19 +250,15 @@ public class Collection extends BackendRouter {
                 DO.DELETE(rel)
             });
             
-            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
-                    MATCH.node(coll).label("collection")
+            Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node(coll).label("collection"),
+                WHERE.valueOf(coll.id()).EQUALS(id),
+                WHERE.NOT().existsPattern(
+                        X.node().label("user")
                         .relation()
-                        .node(user).label("user"),
-                    WHERE.valueOf(coll.id()).EQUALS(id),
-                    RETURN.value(user)
-                });
-            
-            if (res.resultOf(user).size() == 0){
-            	Database.query(rc.getLocal("db"), new IClause[]{
-            		DO.DELETE(coll)	
-            	});
-            }
+                        .node(coll)),
+                DO.DETACH_DELETE(coll)
+            });
 
             rc.getResponse().ok();
         });
