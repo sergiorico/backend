@@ -12,7 +12,7 @@ import java.util.List;
 import ro.pippo.core.Application;
 import ro.pippo.core.Messages;
 import ro.pippo.core.PippoSettings;
-
+import ro.pippo.core.route.RouteContext;
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
@@ -250,6 +250,7 @@ public class Collection extends BackendRouter {
                 DO.DELETE(rel)
             });
             
+            //Delete collections that have no members (or invites)
             Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node(coll).label("collection"),
                 WHERE.valueOf(coll.id()).EQUALS(id),
@@ -259,6 +260,8 @@ public class Collection extends BackendRouter {
                         .node(coll)),
                 DO.DETACH_DELETE(coll)
             });
+            
+            removeEntriesWithNoCollection(rc);
 
             rc.getResponse().ok();
         });
@@ -287,16 +290,10 @@ public class Collection extends BackendRouter {
                 WHERE.valueOf(coll.id()).EQUALS(id).AND().valueOf(entry.id()).EQUALS(entryId),
                 DO.DELETE(rel)
             });
-
-            // Then remove all nodes without any collection
-            Database.query(rc.getLocal("db"), new IClause[]{
-                MATCH.node(entry).label("entry"),
-                WHERE.NOT().existsPattern(
-                        X.node().label("collection")
-                        .relation().type("CONTAINS")
-                        .node(entry)),
-                DO.DETACH_DELETE(entry)
-            });
+            
+            //TODO: Optimize: Only remove the entry that was supposed to be delted.
+            
+            removeEntriesWithNoCollection(rc);
 
             rc.getResponse().ok();
         });
@@ -341,5 +338,17 @@ public class Collection extends BackendRouter {
             rc.status(200).json().send(members);
         });
 
+    }
+    
+    private void removeEntriesWithNoCollection(RouteContext rc){
+    	final JcNode entry = new JcNode("e");
+    	Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node(entry).label("entry"),
+                WHERE.NOT().existsPattern(
+                        X.node().label("collection")
+                        .relation().type("CONTAINS")
+                        .node(entry)),
+                DO.DETACH_DELETE(entry)
+            });
     }
 }
