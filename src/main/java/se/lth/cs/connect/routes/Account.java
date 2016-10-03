@@ -154,21 +154,28 @@ public class Account extends BackendRouter {
             if (rc.getParameter("token").isEmpty())
                 throw new RequestException("Must provide a reset token");
 
-            AccountSystem.Account user = AccountSystem.resetPassword(token);
-            if (user == null)
+            String email = AccountSystem.verifyResetPasswordToken(token);
+            if (email == null)
             	throw new RequestException("Invalid reset token!");
-            
-            String message = resetPasswordSuccessTemplate.replace("{password}", user.password);
-
-            Mailman.sendEmail(user.email, "Password reset", message);
-            
-            
+                       
             rc.resetSession();
-            rc.setSession("email", user.email);
-            rc.redirect(frontend + "/profile.html");
+            rc.setSession("resetemail", email);
+            rc.redirect(frontend + "/resetpassword.html");
 
         });
-
+        
+        // POST api.serp.se/v1/account/reset-password-confirm
+        POST("/reset-password-confirm",(rc)-> {
+        	String email = rc.getParameter("resetemail").toString();
+        	String password = rc.getParameter("password").toString();
+        	AccountSystem.changePassword(email, password);
+        	rc.resetSession();
+        	rc.setSession("email", email);
+        	rc.redirect(frontend + "/profile.html");
+        	
+        	
+        });
+        
         // GET api.serp.se/v1/account/verify?token=verifyaccounttoken HTTP/1.1
         GET("/verify", (rc) -> {
             String token = rc.getParameter("token").toString();
