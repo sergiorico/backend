@@ -64,4 +64,4 @@ Dependencies:
  - (neo4j driver) [jcypher](https://github.com/Wolfgang-Schuetzelhofer/jcypher) [wiki](https://github.com/Wolfgang-Schuetzelhofer/jcypher/wiki)
  - (password hasher) [scrypt](https://github.com/wg/scrypt)
  - (logging framework) [slf4j](https://github.com/qos-ch/slf4j)
-
+ - (testing) [restassured](https://github.com/rest-assured/rest-assured/wiki)

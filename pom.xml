@@ -17,7 +17,7 @@
         <java.version>1.8</java.version>
 
         <!-- pippo (framework) and slf4j (logger) versions -->
-        <pippo.version>0.8.0</pippo.version>
+        <pippo.version>0.9.1</pippo.version>
         <slf4j.version>1.7.7</slf4j.version>
     </properties>
 
@@ -107,9 +107,6 @@
     </build>
 
     <dependencies>
-
-        <!-- pippo <all> dependency coordinates, could slim this down to
-        individual depedencies later on when feature set is known -->
         <dependency>
             <groupId>ro.pippo</groupId>
             <artifactId>pippo-core</artifactId>
@@ -131,7 +128,11 @@
             <version>${pippo.version}</version>
             <type>pom</type>
         </dependency>
-
+        <dependency>
+            <groupId>ro.pippo</groupId>
+            <artifactId>pippo-test</artifactId>
+            <version>${pippo.version}</version>
+        </dependency>
 
         <!-- Logging -->
         <dependency>
@@ -178,11 +179,20 @@
 	</dependency>
 
 	<dependency>
-    		<groupId>ro.pippo</groupId>
-		<artifactId>pippo-test</artifactId>
-	    	<version>${pippo.version}</version>
-    	</dependency>
-
+		<groupId>org.neo4j</groupId>
+		<artifactId>neo4j-kernel</artifactId>
+		<version>2.3.3</version>
+		<type>test-jar</type>
+		<scope>test</scope>
+	</dependency>
+	
+	<dependency>
+		<groupId>org.neo4j</groupId>
+		<artifactId>neo4j-io</artifactId>
+		<version>2.3.3</version>
+		<type>test-jar</type>
+		<scope>test</scope>
+	</dependency>
     </dependencies>
 
 </project>
