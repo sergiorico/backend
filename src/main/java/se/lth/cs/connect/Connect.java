@@ -25,6 +25,11 @@ public class Connect extends Application {
 	private MailClient mailClient;
 	
 	public MailClient getMailClient() { return mailClient; }
+	
+	public void useMailClient(MailClient client) {
+		mailClient = client;
+		client.configure(getPippoSettings());
+	}
 
 	@Override
 	protected void onInit() {
@@ -32,14 +37,8 @@ public class Connect extends Application {
 
 		Database.configure(conf);
 
-		switch (getRuntimeMode()) {
-		case PROD:
-			configureProduction(conf);
-		case DEV:
-			configureDevlopment(conf);
-		case TEST:
-			configureTest(conf);
-		}
+		// Use the ordinary mailman by default
+		useMailClient(new Mailman());
 
 		final String[] allowedOrigins = new String[] { "http://localhost:8181", "http://localhost:8080",
 				"http://serpconnect.cs.lth.se", "http://api.serpconnect.cs.lth.se", "https://serpconnect.cs.lth.se",
@@ -89,22 +88,6 @@ public class Connect extends Application {
 				rc.text().send(e.getMessage());
 			}
 		});
-	}
-
-	private void configureTest(PippoSettings conf) {
-		mailClient = new Mailbox();
-		mailClient.configure(conf);
-	}
-
-	private void configureDevlopment(PippoSettings conf) {
-		mailClient = new Mailman();
-		mailClient.configure(conf);
-
-	}
-
-	private void configureProduction(PippoSettings conf) {
-		mailClient = new Mailman();
-		mailClient.configure(conf);
 	}
 
 	// For now, ignore the 'prefix' b/c it's hardcoded in each module (as
