@@ -6,6 +6,7 @@ import se.lth.cs.connect.routes.Entry;
 import se.lth.cs.connect.routes.Collection;
 
 import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.MailClient;
 import se.lth.cs.connect.modules.Mailman;
 
 import ro.pippo.core.Pippo;
@@ -21,89 +22,96 @@ import ro.pippo.core.route.RouteContext;
  */
 public class Connect extends Application {
 
-    @Override
-    protected void onInit() {
-        PippoSettings conf = getPippoSettings();
+	private MailClient mailClient;
+	
+	public MailClient getMailClient() { return mailClient; }
+	
+	public void useMailClient(MailClient client) {
+		mailClient = client;
+		client.configure(getPippoSettings());
+	}
 
-        Database.configure(conf);
-        Mailman.configure(conf);
+	@Override
+	protected void onInit() {
+		PippoSettings conf = getPippoSettings();
 
-        final String[] allowedOrigins = new String[]{
-            "http://localhost:8181",
-            "http://localhost:8080",
-            "http://serpconnect.cs.lth.se",
-            "http://api.serpconnect.cs.lth.se",
-            "https://serpconnect.cs.lth.se",
-            "https://api.serpconnect.cs.lth.se"
-        };
+		Database.configure(conf);
 
-        ALL(".*", (rc) -> {
-            String origin = rc.getHeader("Origin");
-            boolean originOk = false;
+		// Use the ordinary mailman by default
+		useMailClient(new Mailman());
 
-            for (String allowed : allowedOrigins) {
-                if (allowed.equals(origin)) {
-                    originOk = true;
-                    break;
-                }
-            }
+		final String[] allowedOrigins = new String[] { "http://localhost:8181", "http://localhost:8080",
+				"http://serpconnect.cs.lth.se", "http://api.serpconnect.cs.lth.se", "https://serpconnect.cs.lth.se",
+				"https://api.serpconnect.cs.lth.se" };
 
-            if (!originOk && origin != null)
-                throw new RequestException("CORS for this origin is not allowed");
+		ALL(".*", (rc) -> {
+			String origin = rc.getHeader("Origin");
+			boolean originOk = false;
 
-            if (origin != null) {
-                rc.setHeader("Access-Control-Allow-Origin", origin);
-                rc.setHeader("Access-Control-Allow-Credentials", "true");
-                rc.setHeader("Access-Control-Allow-Headers", "*");
-            }
-            rc.next();
-        });
+			for (String allowed : allowedOrigins) {
+				if (allowed.equals(origin)) {
+					originOk = true;
+					break;
+				}
+			}
 
-        getRouter().addRoute(new Route("OPTIONS", ".*", (rc) -> {
-            rc.setHeader("Access-Control-Allow-Methods", "PUT, POST, OPTIONS");
-            rc.setHeader("Access-Control-Allow-Headers", "Content-Type");
-            rc.setHeader("Access-Control-Max-Age", "86400");
-            rc.getResponse().ok();
-        }));
+			if (!originOk && origin != null)
+				throw new RequestException("CORS for this origin is not allowed");
 
-        use("/v1/admin", new Admin(this));
-        use("/v1/entry", new Entry(this));
-        use("/v1/account", new Account(this));
-        use("/v1/account", new Collection(this));
+			if (origin != null) {
+				rc.setHeader("Access-Control-Allow-Origin", origin);
+				rc.setHeader("Access-Control-Allow-Credentials", "true");
+				rc.setHeader("Access-Control-Allow-Headers", "*");
+			}
+			rc.next();
+		});
 
-        getErrorHandler().setExceptionHandler(RequestException.class, new ExceptionHandler() {
-            @Override
-            public void handle(Exception e, RouteContext rc) {
-                if (e instanceof RequestException)
-                    rc.status(((RequestException)e).getStatus());
-                else
-                    rc.status(500);
-                rc.text().send(e.getMessage());
-            }
-        });
-    }
+		getRouter().addRoute(new Route("OPTIONS", ".*", (rc) -> {
+			rc.setHeader("Access-Control-Allow-Methods", "PUT, POST, OPTIONS");
+			rc.setHeader("Access-Control-Allow-Headers", "Content-Type");
+			rc.setHeader("Access-Control-Max-Age", "86400");
+			rc.getResponse().ok();
+		}));
 
-    // For now, ignore the 'prefix' b/c it's hardcoded in each module (as PREFIX)
-    private void use(String prefix, Router source) {
-        Router target = getRouter();
+		use("/v1/admin", new Admin(this));
+		use("/v1/entry", new Entry(this));
+		use("/v1/account", new Account(this));
+		use("/v1/account", new Collection(this));
 
-        // RouteGroup is available @ master which can set a prefix for routes
-        // in a group. Will enable us to mount a router onto a specific path.
-        for (Route r : source.getRoutes()) {
-            target.addRoute(r);
-        }
-    }
+		getErrorHandler().setExceptionHandler(RequestException.class, new ExceptionHandler() {
+			@Override
+			public void handle(Exception e, RouteContext rc) {
+				if (e instanceof RequestException)
+					rc.status(((RequestException) e).getStatus());
+				else
+					rc.status(500);
+				rc.text().send(e.getMessage());
+			}
+		});
+	}
 
-    /**
-     * ENTRY POINT
-     */
-    public static void main(String[] args) {
-        //System.setProperty("pippo.mode", "dev");
-        //System.setProperty("pippo.mode", "prod");
-        //System.setProperty("pippo.mode", "test");
+	// For now, ignore the 'prefix' b/c it's hardcoded in each module (as
+	// PREFIX)
+	private void use(String prefix, Router source) {
+		Router target = getRouter();
 
-        Pippo pippo = new Pippo(new Connect());
-        pippo.start();
-    }
+		// RouteGroup is available @ master which can set a prefix for routes
+		// in a group. Will enable us to mount a router onto a specific path.
+		for (Route r : source.getRoutes()) {
+			target.addRoute(r);
+		}
+	}
+
+	/**
+	 * ENTRY POINT
+	 */
+	public static void main(String[] args) {
+		// System.setProperty("pippo.mode", "dev");
+		// System.setProperty("pippo.mode", "prod");
+		// System.setProperty("pippo.mode", "test");
+
+		Pippo pippo = new Pippo(new Connect());
+		pippo.start();
+	}
 
 }

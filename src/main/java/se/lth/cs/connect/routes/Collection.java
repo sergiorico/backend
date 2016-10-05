@@ -1,34 +1,31 @@
 package se.lth.cs.connect.routes;
 
-import se.lth.cs.connect.Graph;
-import se.lth.cs.connect.TrustLevel;
-import se.lth.cs.connect.RequestException;
-
-import se.lth.cs.connect.modules.Database;
-import se.lth.cs.connect.modules.Mailman;
-
 import java.util.List;
 
-import ro.pippo.core.Application;
-import ro.pippo.core.Messages;
-import ro.pippo.core.PippoSettings;
-import ro.pippo.core.route.RouteContext;
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
-import iot.jcypher.query.values.JcNode;
-import iot.jcypher.query.values.JcRelation;
-import iot.jcypher.query.values.JcBoolean;
-import iot.jcypher.query.values.JcNumber;
+import iot.jcypher.query.factories.clause.CREATE;
 import iot.jcypher.query.factories.clause.DO;
 import iot.jcypher.query.factories.clause.MATCH;
-import iot.jcypher.query.factories.clause.WHERE;
 import iot.jcypher.query.factories.clause.MERGE;
-import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.NATIVE;
-import iot.jcypher.query.factories.clause.CREATE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
+import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.factories.clause.WHERE;
 import iot.jcypher.query.factories.xpression.X;
+import iot.jcypher.query.values.JcBoolean;
+import iot.jcypher.query.values.JcNode;
+import iot.jcypher.query.values.JcNumber;
+import iot.jcypher.query.values.JcRelation;
+import ro.pippo.core.Messages;
+import ro.pippo.core.PippoSettings;
+import ro.pippo.core.route.RouteContext;
+import se.lth.cs.connect.Connect;
+import se.lth.cs.connect.Graph;
+import se.lth.cs.connect.RequestException;
+import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.Mailman;
 
 /**
  * Handles account related actions.
@@ -39,7 +36,7 @@ public class Collection extends BackendRouter {
     private String collectionInviteTemplate;
     private String frontend;
 
-    public Collection(Application app) {
+    public Collection(Connect app) {
         super(app);
 
         Messages msg = app.getMessages();
@@ -226,8 +223,10 @@ public class Collection extends BackendRouter {
                     MERGE.node(user).relation().out().type("INVITE").node(coll)
                 });
 
-                Mailman.sendEmail(email, "SERP Connect - Collection Invite",
-                    collectionInviteTemplate.replace("{frontend}", frontend));
+                app.getMailClient().
+    				sendEmail(email, "SERP Connect - Collection Invite",
+    						  collectionInviteTemplate.
+    						  	  replace("{frontend}", frontend));
             }
 
             rc.getResponse().ok();
