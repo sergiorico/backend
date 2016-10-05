@@ -1,41 +1,28 @@
 package se.lth.cs.connect.routes;
 
-import se.lth.cs.connect.TrustLevel;
-import se.lth.cs.connect.Graph;
-import se.lth.cs.connect.RequestException;
-
-import se.lth.cs.connect.modules.Mailman;
-import se.lth.cs.connect.modules.Database;
-import se.lth.cs.connect.modules.AccountSystem;
-
-import java.util.List;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-
-import ro.pippo.core.PippoSettings;
-import ro.pippo.core.PippoConstants;
-import ro.pippo.core.Messages;
-import ro.pippo.core.Application;
-import ro.pippo.core.route.Route;
-import ro.pippo.core.route.DefaultRouter;
-import ro.pippo.core.route.RouteHandler;
+import java.util.List;
 
 import iot.jcypher.database.IDBAccess;
-
 // required for building queries and interpreting query results
 import iot.jcypher.graph.GrNode;
-import iot.jcypher.graph.GrLabel;
-import iot.jcypher.graph.GrRelation;
-
-import iot.jcypher.query.JcQuery;
 import iot.jcypher.query.JcQueryResult;
-
 import iot.jcypher.query.api.IClause;
-import iot.jcypher.query.values.JcNode;
-import iot.jcypher.query.values.JcRelation;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.values.JcNode;
+import ro.pippo.core.Messages;
+import ro.pippo.core.PippoConstants;
+import ro.pippo.core.PippoSettings;
+import se.lth.cs.connect.Connect;
+import se.lth.cs.connect.Graph;
+import se.lth.cs.connect.RequestException;
+import se.lth.cs.connect.TrustLevel;
+import se.lth.cs.connect.modules.AccountSystem;
+import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.Mailman;
 
 /**
  * Handles account related actions.
@@ -58,7 +45,7 @@ public class Account extends BackendRouter {
         }
     }
 
-    public Account(Application app) {
+    public Account(Connect app) {
         super(app);
 
         Messages msg = app.getMessages();
@@ -121,7 +108,9 @@ public class Account extends BackendRouter {
                 .replace("{token}", token)
                 .replace("{hostname}", hostname);
 
-            Mailman.sendEmail(email, "SERP connect registration", message);
+            app.getMailClient().
+            	sendEmail(email, "SERP connect registration", message);
+            
             rc.resetSession();
             rc.setSession("email", email);
             rc.getResponse().ok();
@@ -142,7 +131,8 @@ public class Account extends BackendRouter {
                     .replace("{token}", token)
                     .replace("{hostname}", hostname);
 
-                Mailman.sendEmail(email, "Password reset request", message);
+                app.getMailClient().
+        			sendEmail(email, "Password reset request", message);
                 rc.getResponse().ok();
             }
         });
@@ -160,7 +150,8 @@ public class Account extends BackendRouter {
             
             String message = resetPasswordSuccessTemplate.replace("{password}", user.password);
 
-            Mailman.sendEmail(user.email, "Password reset", message);
+            app.getMailClient().
+				sendEmail(user.email, "Password reset", message);
             
             
             rc.resetSession();
