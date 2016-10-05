@@ -15,7 +15,9 @@ public class TestUserAPI extends PippoTest {
 	
 	@Test
 	public void testAccessDenied() {
-		// These routes require an active session => they should fail (with status 401)
+		// These routes require an active session => requests should be denied
+		// Status code 401 => all is ok (expected)
+		// Any other code means that we have an error somewhere.
 		when().get("/v1/account/login").then().statusCode(401);
 		when().get("/v1/account/collections").then().statusCode(401);
 		when().get("/v1/account/self").then().statusCode(401);
@@ -26,9 +28,11 @@ public class TestUserAPI extends PippoTest {
 		when().get("/v1/account/dat12asm@student.lu.se").then().statusCode(401);
 	}
 	
-	// Register --> Logout --> Login --> Delete
 	@Test
 	public void testLifecycle() {
+		// This test case is not very important, but it showcases how to 
+		// (re)use a session for multiple queries and how to create post
+		// requests with data.
 		Response reg = given().
 				param("email", "test@serptest.test").
 				param("passw", "hejsanhoppsan").
