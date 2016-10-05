@@ -10,6 +10,7 @@ import ro.pippo.test.PippoTest;
 
 public class TestUserAPI extends PippoTest {
 
+	// This rule ensures that we have a server running before doing the tests
 	@Rule
 	public PippoRule pippoRule = new PippoRule(new Connect());
 	
