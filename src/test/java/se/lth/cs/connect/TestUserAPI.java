@@ -51,8 +51,8 @@ public class TestUserAPI extends PippoTest {
 		reg.then().
 			statusCode(200);
 	
-		assertEquals("Must receive registration email", mailbox.getInbox().size(), 1);
-		assertEquals("Email recipient must match registered email",
+		assertEquals("Must send registration email", mailbox.getInbox().size(), 1);
+		assertEquals("Recipient must match registered email",
 				mailbox.top().recipient, "test-reg@serptest.test");
 		
 		// Cleanup
