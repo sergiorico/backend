@@ -1,16 +1,8 @@
 machine:
-  java:
-    version: 1.8
   pre:
     - sudo sed -i "s|dbms.security.auth_enabled=true|dbms.security.auth_enabled=false|g" /etc/neo4j/neo4j-server.properties
   services:
     - neo4j
-dependencies:
-  pre:
-    - npm install -g istanbul
-general:
-  artifacts:
-    - ./coverage
 test:
   post:
     - bash <(curl -s https://codecov.io/bash)
