@@ -141,32 +141,45 @@ public class Account extends BackendRouter {
                 String message = resetPasswordRequestTemplate
                     .replace("{token}", token)
                     .replace("{hostname}", hostname);
-
+       //         System.out.println("message: " + message + "\n");
                 Mailman.sendEmail(email, "Password reset request", message);
                 rc.getResponse().ok();
             }
         });
 
-        // GET api.serp.se/v1/account/reset-password?token=igotmypermitrighthere HTTP/1.1
+     // GET api.serp.se/v1/account/reset-password?token=igotmypermitrighthere HTTP/1.1
         GET("/reset-password", (rc) -> {
             String token = rc.getParameter("token").toString();
 
             if (rc.getParameter("token").isEmpty())
                 throw new RequestException("Must provide a reset token");
 
-            AccountSystem.Account user = AccountSystem.resetPassword(token);
-            if (user == null)
+            String email = AccountSystem.verifyResetPasswordToken(token);
+            if (email == null)
             	throw new RequestException("Invalid reset token!");
-            
-            String message = resetPasswordSuccessTemplate.replace("{password}", user.password);
-
-            Mailman.sendEmail(user.email, "Password reset", message);
-            
-            
+                       
             rc.resetSession();
-            rc.setSession("email", user.email);
-            rc.redirect(frontend + "/profile.html");
+            rc.setSession("resetemail", email);
+            rc.redirect(frontend + "/resetpassword.html");
 
+        });
+        
+        // POST api.serp.se/v1/account/reset-password-confirm
+        // passw=...
+        POST("/reset-password-confirm",(rc)-> {
+        	
+        
+        	if(rc.getSession("resetemail") == null)
+        		throw new RequestException("Session 'resetemail' is not set"); 
+        	if(rc.getParameter("passw").isEmpty()){
+        		throw new RequestException("Must provide a password.");
+        	}
+        	String email = rc.getSession("resetemail").toString();
+        	String password = rc.getParameter("passw").toString();
+        	AccountSystem.changePassword(email, password);
+        	rc.resetSession();
+        	rc.setSession("email", email);
+        	rc.getResponse().ok();
         });
 
         // GET api.serp.se/v1/account/verify?token=verifyaccounttoken HTTP/1.1

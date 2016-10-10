@@ -244,20 +244,12 @@ public class AccountSystem {
     }
 
     /**
-     * Consumes the provided token in order to generate a new password for the
-     * attached/pointed-to user. Returns a hacky Account object with password
-     * set to the plaintext version (normally it's scrypt'ed) and invalid trust
-     * value. This is for achieving both email/password and failure returns.
+     * Consumes the provided token and returns the email to continue
+     * the reset password progress. Must check that email isn't null
+     * when using this method.
      */
-    public static Account resetPassword(String hash) {
-        String email = verifyToken("RESET_TOKEN", hash);
-
-        if (email == null)
-            return null;
-
-        String passw = generateToken();
-        changePassword(email, passw);
-        return new Account(email, passw, 0);
+    public static String verifyResetPasswordToken(String hash) {
+        return verifyToken("RESET_TOKEN", hash);
     }
 
     /**
