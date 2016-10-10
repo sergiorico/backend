@@ -1,40 +1,29 @@
 package se.lth.cs.connect.routes;
 
-import se.lth.cs.connect.TrustLevel;
-import se.lth.cs.connect.Graph;
-import se.lth.cs.connect.RequestException;
-import se.lth.cs.connect.modules.Database;
-import se.lth.cs.connect.modules.AccountSystem;
-
 import java.util.List;
-
-import ro.pippo.core.PippoSettings;
-import ro.pippo.core.Application;
-
-import iot.jcypher.database.IDBAccess;
 
 // required for building queries and interpreting query results
 import iot.jcypher.graph.GrNode;
-import iot.jcypher.graph.GrLabel;
-import iot.jcypher.graph.GrRelation;
-
-import iot.jcypher.query.JcQuery;
 import iot.jcypher.query.JcQueryResult;
-
 import iot.jcypher.query.api.IClause;
-import iot.jcypher.query.values.JcNode;
-import iot.jcypher.query.values.JcRelation;
 import iot.jcypher.query.factories.clause.DO;
 import iot.jcypher.query.factories.clause.MATCH;
-import iot.jcypher.query.factories.clause.WHERE;
 import iot.jcypher.query.factories.clause.RETURN;
-import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
+import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.values.JcNode;
+import ro.pippo.core.PippoSettings;
+import se.lth.cs.connect.Connect;
+import se.lth.cs.connect.Graph;
+import se.lth.cs.connect.RequestException;
+import se.lth.cs.connect.TrustLevel;
+import se.lth.cs.connect.modules.AccountSystem;
+import se.lth.cs.connect.modules.Database;
 
 /**
  * Handles some admin-only routes, like trust modification.
  */
 public class Admin extends BackendRouter {
-    public Admin(Application app) {
+    public Admin(Connect app) {
         super(app);
     }
 

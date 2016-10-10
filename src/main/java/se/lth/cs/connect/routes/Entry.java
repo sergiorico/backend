@@ -1,56 +1,38 @@
 package se.lth.cs.connect.routes;
 
 
-import se.lth.cs.connect.Graph;
-import se.lth.cs.connect.TrustLevel;
-import se.lth.cs.connect.RequestException;
-import se.lth.cs.connect.DatabaseException;
-import se.lth.cs.connect.modules.Database;
-import se.lth.cs.connect.modules.AccountSystem;
-
 import java.nio.charset.StandardCharsets;
-
+import java.security.MessageDigest; // for sha256
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
-
-import java.security.MessageDigest; // for sha256
-
-import ro.pippo.core.PippoSettings;
-import ro.pippo.core.Application;
-import ro.pippo.core.route.Route;
-import ro.pippo.core.route.DefaultRouter;
-import ro.pippo.core.route.RouteHandler;
-import ro.pippo.core.route.RouteContext;
-
-// required for accessing the database
-import iot.jcypher.database.IDBAccess;
 
 // required for building queries and interpreting query results
 import iot.jcypher.graph.GrNode;
-import iot.jcypher.graph.GrLabel;
-import iot.jcypher.graph.GrRelation;
-
-import iot.jcypher.query.JcQuery;
 import iot.jcypher.query.JcQueryResult;
-
 import iot.jcypher.query.api.IClause;
-import iot.jcypher.query.values.JcNode;
-import iot.jcypher.query.result.JcError;
-import iot.jcypher.query.values.JcNumber;
-import iot.jcypher.query.values.JcString;
-import iot.jcypher.query.values.JcBoolean;
-import iot.jcypher.query.values.JcRelation;
-import iot.jcypher.query.values.JcCollection;
+import iot.jcypher.query.factories.clause.CREATE;
 import iot.jcypher.query.factories.clause.DO;
-import iot.jcypher.query.factories.clause.WHERE;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.MERGE;
-import iot.jcypher.query.factories.clause.CREATE;
-import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
+import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.values.JcBoolean;
+import iot.jcypher.query.values.JcCollection;
+import iot.jcypher.query.values.JcNode;
+import iot.jcypher.query.values.JcNumber;
+import iot.jcypher.query.values.JcRelation;
+import iot.jcypher.query.values.JcString;
+import ro.pippo.core.PippoSettings;
+import se.lth.cs.connect.Connect;
+import se.lth.cs.connect.Graph;
+import se.lth.cs.connect.RequestException;
+import se.lth.cs.connect.TrustLevel;
+import se.lth.cs.connect.modules.AccountSystem;
+import se.lth.cs.connect.modules.Database;
 
 /**
  Handles /entry routes for now.
@@ -61,7 +43,7 @@ import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
  */
 public class Entry extends BackendRouter {
 
-    public Entry(Application app) {
+    public Entry(Connect app) {
         super(app);
     }
 

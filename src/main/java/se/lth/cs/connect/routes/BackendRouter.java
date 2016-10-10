@@ -1,14 +1,12 @@
 package se.lth.cs.connect.routes;
 
-import se.lth.cs.connect.modules.Database;
-
-import ro.pippo.core.Application;
-import ro.pippo.core.PippoSettings;
-import ro.pippo.core.route.Route;
-import ro.pippo.core.route.DefaultRouter;
-import ro.pippo.core.route.RouteHandler;
-
 import iot.jcypher.database.IDBAccess;
+import ro.pippo.core.PippoSettings;
+import ro.pippo.core.route.DefaultRouter;
+import ro.pippo.core.route.Route;
+import ro.pippo.core.route.RouteHandler;
+import se.lth.cs.connect.Connect;
+import se.lth.cs.connect.modules.Database;
 
 /**
  * This router provides a db access instance to route handlers:
@@ -22,10 +20,10 @@ import iot.jcypher.database.IDBAccess;
  * Some helper methods are also included: ALL, GET, POST
  */
 public class BackendRouter extends DefaultRouter {
-    protected Application pippo;
+    protected Connect app;
 
-    public BackendRouter(Application pippo) {
-        this.pippo = pippo;
+    public BackendRouter(Connect app) {
+        this.app = app;
 
         // All requests will need a database connection
         ALL(".*", (rc) -> {
@@ -33,7 +31,7 @@ public class BackendRouter extends DefaultRouter {
             rc.next();
         });
 
-        setup(pippo.getPippoSettings());
+        setup(app.getPippoSettings());
 
         // Make sure to close connection, even if request failed/throwed
         ALL(".*", (rc) -> {

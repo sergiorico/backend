@@ -13,7 +13,7 @@ import javax.mail.internet.MimeMessage;
 /**
 * Send email.
 */
-public class Mailman {
+public class Mailman extends MailClient {
 
     private static Properties smtp;
     private static String USER, EMAIL, PASSW;
@@ -22,7 +22,7 @@ public class Mailman {
         smtp.put(field, props.getString(field, def));
     }
 
-    public static void configure(PippoSettings props){
+    public void configure(PippoSettings props){
         smtp = new Properties();
         loadSetting(props, "mail.smtp.host", "smtp.gmail.com");
         loadSetting(props, "mail.smtp.auth", "true");
@@ -39,7 +39,7 @@ public class Mailman {
     /**
     * Send the email via SMTP using StartTLS and SSL
     */
-    public static boolean sendEmail(String to, String subject, String html) {
+    public boolean sendEmail(String to, String subject, String html) {
         // Create the session
         Session session = Session.getDefaultInstance(smtp, new javax.mail.Authenticator() {
             protected PasswordAuthentication getPasswordAuthentication() {
