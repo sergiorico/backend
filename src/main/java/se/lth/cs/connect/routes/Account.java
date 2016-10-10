@@ -182,6 +182,7 @@ public class Account extends BackendRouter {
         	rc.getResponse().ok();
         });
 
+
         // GET api.serp.se/v1/account/verify?token=verifyaccounttoken HTTP/1.1
         GET("/verify", (rc) -> {
             String token = rc.getParameter("token").toString();
