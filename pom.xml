@@ -94,16 +94,55 @@
                 <version>1.4.0</version>
                 <executions>
                     <execution>
+                    	<id>connect</id>
                         <goals>
                             <goal>java</goal>
                         </goals>
+                        <configuration>
+		                    <mainClass>${main.class}</mainClass>
+		                </configuration>
                     </execution>
-                </executions>
-                <configuration>
-                    <mainClass>${main.class}</mainClass>
-                </configuration>
+                </executions>     
             </plugin>
-
+			<plugin>
+		        <groupId>org.apache.maven.plugins</groupId>
+		        <artifactId>maven-failsafe-plugin</artifactId>
+		        <version>2.19.1</version>
+		        <executions>
+		          <execution>
+		            <goals>
+		              <goal>integration-test</goal>
+		              <goal>verify</goal>
+		            </goals>
+		          </execution>
+		        </executions>
+		      </plugin>
+			<plugin>
+	            <groupId>com.bazaarvoice.maven.plugins</groupId>
+	            <artifactId>process-exec-maven-plugin</artifactId>
+	            <version>0.7</version>
+	            <executions>
+	                <execution>
+	                    <id>neo4j-process</id>
+	                    <phase>pre-integration-test</phase>
+	                    <goals>
+	                        <goal>start</goal>
+	                    </goals>
+	                    <configuration>
+	                        <name>neo4j</name>
+	                        <waitForInterrupt>false</waitForInterrupt>
+	                        <healthcheckUrl>http://localhost:7474/</healthcheckUrl>
+	                        <workingDir>../dep/neo4j/</workingDir>
+	                        <arguments>                        
+	                            <argument>java</argument>
+	                            <argument>-cp</argument>
+	                            <argument>.:${project.basedir}/dep/neo4j/lib/*:${project.basedir}/dep/neo4j/system/lib/*</argument>
+	                            <argument>org.neo4j.server.CommunityBootstrapper</argument>
+	                        </arguments>
+	                    </configuration>
+	                </execution>
+	         	</executions>
+         	</plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -198,21 +237,6 @@
 		<version>1.4.7</version>
 	</dependency>
 
-	<dependency>
-		<groupId>org.neo4j</groupId>
-		<artifactId>neo4j-kernel</artifactId>
-		<version>2.3.3</version>
-		<type>test-jar</type>
-		<scope>test</scope>
-	</dependency>
-
-	<dependency>
-		<groupId>org.neo4j</groupId>
-		<artifactId>neo4j-io</artifactId>
-		<version>2.3.3</version>
-		<type>test-jar</type>
-		<scope>test</scope>
-	</dependency>
     </dependencies>
 
 </project>
