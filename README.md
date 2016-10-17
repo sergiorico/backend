@@ -9,7 +9,7 @@ requires:
 Using `mvn`:
  - to run (dev): `mvn compile exec:java -Dpippo.mode=dev`
  - to build: `mvn package`
- - to test: `mvn test`
+ - to test: `mvn integration-test`
 
 Default port is `8080`
 
