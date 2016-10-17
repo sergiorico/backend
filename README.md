@@ -9,7 +9,7 @@ requires:
 Using `mvn`:
  - to run (dev): `mvn compile exec:java -Dpippo.mode=dev`
  - to build: `mvn package`
- - to test: `mvn test`
+ - to test: `mvn integration-test`
 
 Default port is `8080`
 
@@ -31,6 +31,7 @@ Overview
 Server doesn't support HTTPS, so put it behind nginx or something. HTTPS must be
 used to protect the password (sent during login) and session cookie.
 
+
 ## Accounts
 Accounts are stored in the neo4j graph, labeled as `:user`. The account identity
 the email used to sign up (and later verify account). Passwords are hashed with
@@ -42,6 +43,12 @@ to 'User' level. An 'Admin' can promote anyone to 'Verified' level, removing app
 requirement for submitted entries. An 'Admin' can also promote anyone to 'Admin' level,
 which unlocks entry approval view, all entry editing (edit entry without direct access),
 and the user level change view.
+
+### Reset Password
+The user who requests a reset password will get a confirmation email with a link
+to reset the password. When the link is pressed the user will get redirected
+to a form where the user can change his/her password by entering the new password
+twice. The user will then be logged in and redirected to the users profile page.
 
 ## Entries
 There are two types of entries (`:entry`): `:research` and `:challenge`. Entry nodes
