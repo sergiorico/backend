@@ -1,14 +1,23 @@
 package se.lth.cs.connect;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.jayway.restassured.filter.session.SessionFilter;
 import com.jayway.restassured.response.Response;
 
+import ro.pippo.core.PippoConstants;
 import ro.pippo.test.PippoRule;
 import ro.pippo.test.PippoTest;
+import utils.URLParser;
 
 public class ITUserAPI extends PippoTest {
 
@@ -32,8 +41,9 @@ public class ITUserAPI extends PippoTest {
 		when().get("/v1/account/dat12asm@student.lu.se").then().statusCode(401);
 	}
 
-	private Response register(String email, String passw) {
+	private void register(String email, String passw, SessionFilter creds) {
 		Response reg = given().
+				filter(creds).
 				param("email", email).
 				param("passw", passw).
 			post("/v1/account/register");
@@ -41,13 +51,11 @@ public class ITUserAPI extends PippoTest {
 		String body = reg.getBody().prettyPrint();
 		
 		reg.then().statusCode(200);
-
-		return reg;
 	}
 
-	private void delete(String sessionId) {
+	private void delete(SessionFilter creds) {
 		given().
-			cookie("JSESSIONID", sessionId).
+			filter(creds).
 		when().
 			post("/v1/account/delete").
 		then().
@@ -59,16 +67,17 @@ public class ITUserAPI extends PippoTest {
 	 */
 	@Test
 	public void testLogin() {
-		Response reg = register("test-login@serp", "1234");
+		SessionFilter session = new SessionFilter();
+		register("test-login@serp", "1234", session);
 
 		given().
-			cookie("JSESSIONID", reg.getCookie("JSESSIONID")).
+			filter(session).
 		when().
 			get("/v1/account/login").
 		then().
 			statusCode(200);
 
-		delete(reg.getCookie("JSESSIONID"));
+		delete(session);
 	}
 
 	/**
@@ -76,20 +85,34 @@ public class ITUserAPI extends PippoTest {
 	 * is sent to the correct email address.
 	 */
 	@Test
-	public void testRegistration() {
+	public void testRegistration() throws UnsupportedEncodingException {
 		// Use mailbox to capture emails instead of sending them
 		Mailbox mailbox = new Mailbox();
 		app.useMailClient(mailbox);
+		
+		SessionFilter session = new SessionFilter();
+		
+		register("test-reg@serptest.test", "hejsanhoppsan", session);
+	
+		assertThat("Must send registration email", mailbox.getInbox().size(), is(1));
+		assertThat("Recipient must match registered email",
+				mailbox.top().recipient, is(equalTo("test-reg@serptest.test")));
+		
+		String verify = URLParser.find(mailbox.top().content);
+		verify = verify.substring(verify.indexOf("token=") + 6);
+		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
+		assertThat("Must find link in email", verify, not(equalTo("")));		
 
-		// Register
-		Response reg = register("test-reg@serptest.test", "hejsanhoppsan");
-
-		assertEquals("Must send registration email", mailbox.getInbox().size(), 1);
-		assertEquals("Recipient must match registered email",
-				mailbox.top().recipient, "test-reg@serptest.test");
-
+		given().
+			//filter(sessionFilter).
+			param("token", verify).
+		expect().
+			statusCode(200).
+		when().
+			get("/v1/account/verify");
+		
 		// Cleanup
-		delete(reg.getCookie("JSESSIONID"));
+		delete(session);
 	}
 
 	@Test
@@ -97,23 +120,25 @@ public class ITUserAPI extends PippoTest {
 		// This test case is not very important, but it showcases how to
 		// (re)use a session for multiple queries and how to create post
 		// requests with data.
-		Response reg = register("test@serptest.test", "hejsanhoppsan");
+		SessionFilter session = new SessionFilter();
+		register("test@serptest.test", "hejsanhoppsan", session);
 
 		given().
-			cookie("JSESSIONID", reg.getCookie("JSESSIONID")).
+			filter(session).
+		expect().
+			statusCode(200).
 		when().
-			post("/v1/account/logout").
-		then().
-			statusCode(200);
+			post("/v1/account/logout");
 
-		Response login = given().
-				param("email", "test@serptest.test").
-				param("passw", "hejsanhoppsan").
+		given().
+			filter(session).
+			param("email", "test@serptest.test").
+			param("passw", "hejsanhoppsan").
+		expect().
+			statusCode(200).
+		when().
 			post("/v1/account/login");
 
-		reg.then().
-			statusCode(200);
-
-		delete(login.getCookie("JSESSIONID"));
+		delete(session);
 	}
 }
