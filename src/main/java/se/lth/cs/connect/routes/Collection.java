@@ -70,7 +70,8 @@ public class Collection extends BackendRouter {
                 RETURN.value(coll.id()).AS(id)
             });
 
-            rc.json().send(res.resultOf(id).get(0));
+            rc.json().send(
+            	"{ \"id\": " + res.resultOf(id).get(0) + " }");
         });
 
         //
