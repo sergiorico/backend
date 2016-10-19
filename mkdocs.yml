@@ -3,5 +3,5 @@ pages:
     - Home: index.md
     - API: api.md
     - Dev: development.md
-    - Contriute: contribute.md
+    - Contriute: contributing.md
 theme: readthedocs
