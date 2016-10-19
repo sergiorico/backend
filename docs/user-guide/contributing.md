@@ -1,5 +1,3 @@
-Contributing
-============
 Everyone is welcome! You, yes you and you! We want you!
 
 Fork-and-feature

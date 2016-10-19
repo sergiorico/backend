@@ -1,8 +1,6 @@
-Welcome to the connect wiki!
+These docs detail the inner and outer workings of the SERP connect server.
 
-This wiki details how the backend/server component of the connect project works, along with development and contribution guidelines.
-
-Get started
+First steps
 -----------
  - [development guide](user-guide/development.md)
  - [contribution guide](user-guide/contributing.md)
