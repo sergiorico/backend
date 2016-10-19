@@ -1,0 +1,7 @@
+site_name: serp connect api
+pages:
+    - Home: index.md
+    - API: api.md
+    - Dev: development.md
+    - Contriute: contribute.md
+theme: readthedocs
