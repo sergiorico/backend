@@ -5,13 +5,20 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.restassured.filter.session.SessionFilter;
+import com.jayway.restassured.internal.mapping.Jackson1Mapper;
+import com.jayway.restassured.path.json.JsonPath;
 import com.jayway.restassured.response.Response;
 
 import ro.pippo.core.PippoConstants;
@@ -48,8 +55,6 @@ public class ITUserAPI extends PippoTest {
 				param("passw", passw).
 			post("/v1/account/register");
 
-		String body = reg.getBody().prettyPrint();
-		
 		reg.then().statusCode(200);
 	}
 
@@ -112,6 +117,44 @@ public class ITUserAPI extends PippoTest {
 			get("/v1/account/verify");
 		
 		// Cleanup
+		delete(session);
+	}
+	
+	/**
+	 * Verifies that the last person of a collections leaves the collection, the collection is deleted.
+	 * @throws JsonParseException 
+	 */
+	@Test
+	public void testDeleteEmptyCollections() throws JsonParseException {
+		Mailbox mailbox = new Mailbox();
+		app.useMailClient(mailbox);
+		
+		SessionFilter session = new SessionFilter();
+		register("Filippa@serp.test", "hej", session);	
+		
+		Response res = given().
+			filter(session).param("name", "testcoll").
+		expect().
+			statusCode(200).
+			contentType("application/json").
+		when().
+			post("v1/collection/");
+		
+		JsonPath jp = res.jsonPath();
+		String id = jp.getString("id");
+		
+		given().
+			filter(session).
+		expect().
+			statusCode(200).
+		when().
+			post("v1/collection/" + id + "/leave");
+		
+		expect().
+			statusCode(400).
+		when().
+			get("v1/collection/" + id + "/stats");
+		
 		delete(session);
 	}
 
