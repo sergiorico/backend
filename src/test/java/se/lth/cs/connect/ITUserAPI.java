@@ -17,6 +17,7 @@ import com.jayway.restassured.response.Response;
 import ro.pippo.core.PippoConstants;
 import ro.pippo.test.PippoRule;
 import ro.pippo.test.PippoTest;
+import se.lth.cs.connect.Mailbox.Mail;
 import utils.URLParser;
 
 public class ITUserAPI extends PippoTest {
@@ -141,4 +142,69 @@ public class ITUserAPI extends PippoTest {
 
 		delete(session);
 	}
+	
+	//this testcase might break if format of the reset password email is changed
+	@Test
+	public void testResetPassword() throws UnsupportedEncodingException{
+		Mailbox mailbox = new Mailbox();
+		app.useMailClient(mailbox);
+		
+		SessionFilter session = new SessionFilter();
+		
+		// Register
+		register("test-reset@serptest.test", "hejsanhoppsan",session);
+		
+		
+		//logout
+		given().
+			filter(session).
+		when().
+			post("/v1/account/logout").
+		then().
+			statusCode(200);
+		
+		//ask for reset email
+		Response reset = given().
+				param("email", "test-reset@serptest.test").
+				expect().statusCode(200).when().
+			post("/v1/account/reset-password");
+		
+		//filter mail for the token
+		Mail test = mailbox.top();
+		String[] split = test.content.split("token=");
+		String[] token = split[1].split("\n");
+		String verify = URLDecoder.decode(token[0], PippoConstants.UTF8);
+
+		//verify token
+		//stop redirect to avoid breaking the session
+		String sessionId = given().redirects().follow(false).
+				param("token", verify).
+				expect().statusCode(302).when().
+				get("/v1/account/reset-password").andReturn().sessionId();
+		
+		//System.err.println("after: " + sessionId);
+
+		//set new password
+		given().
+			cookie("JSESSIONID", sessionId).
+			param("passw","hej123").
+		expect().statusCode(200).when().
+			post("/v1/account/reset-password-confirm");
+	
+		//session gets wrecked by redirect no need to logout
+
+		//login with new password
+		given().
+		filter(session).
+		param("email", "test-reset@serptest.test").
+		param("passw", "hej123").
+		when().
+		post("/v1/account/login").
+		then().
+		statusCode(200);
+
+		delete(session);
+	}
+	
+	
 }
