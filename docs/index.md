@@ -4,12 +4,12 @@ This wiki details how the backend/server component of the connect project works,
 
 Get started
 -----------
- - [[development|development]]
- - [[contributing|contributing]]
- - [[testing|testing]]
+ - [development guide](development.md)
+ - [contribution guide](contributing.md)
+ - [testing](testing.md)
 
 Specifications
 --------------
- - [[the public api|api]]
+ - [api](api.md)
  - [[trust levels|trust]]
  - [[terminology|words]]
