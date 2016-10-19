@@ -1,5 +1,3 @@
-   API
-=======
 The backend exposes a public HTTP API.
 
 Status codes are generally:
