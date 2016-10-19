@@ -1,7 +1,12 @@
 site_name: serp connect api
 pages:
     - Home: index.md
+    - 'User Guide':
+        - Development: 'user-guide/development.md'
+        - Contributing: 'user-guide/contributing.md'
+        - Testing: 'user-guide/testing.md'
+    - 'Internals':
+        - 'Trust Levels': 'internals/trust.md'
+        - 'Sessions': 'internals/sessions.md'
     - API: api.md
-    - Dev: development.md
-    - Contriute: contributing.md
 theme: readthedocs
