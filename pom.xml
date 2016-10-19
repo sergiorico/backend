@@ -98,11 +98,11 @@
                         <goals>
                             <goal>java</goal>
                         </goals>
+                    </execution>
+                </executions>     
                         <configuration>
 		                    <mainClass>${main.class}</mainClass>
 		                </configuration>
-                    </execution>
-                </executions>     
             </plugin>
 			<plugin>
 		        <groupId>org.apache.maven.plugins</groupId>
