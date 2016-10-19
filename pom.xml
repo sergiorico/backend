@@ -160,6 +160,13 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
+                    <configuration>
+                        <excludes>
+                            <exclude>docs/</exclude>
+                            <exclude>src/main/resources/</exclude>
+                            <exclude>src/main/assembly/</exclude>
+                        </excludes>
+                    </configuration>
                 </executions>
             </plugin>
         </plugins>
