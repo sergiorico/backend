@@ -2,6 +2,8 @@ package se.lth.cs.connect.routes;
 
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
@@ -25,7 +27,6 @@ import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.modules.Database;
-import se.lth.cs.connect.modules.Mailman;
 
 /**
  * Handles account related actions.
@@ -71,6 +72,28 @@ public class Collection extends BackendRouter {
             });
 
             rc.json().send(res.resultOf(id).get(0));
+        });
+        
+        //id must be a string and the id must exist in the database.
+        ALL("/{id}/.*", (rc) -> {
+        	
+        	String ids = rc.getParameter("id").toString();
+        	if (!StringUtils.isNumeric(ids)){
+        		throw new RequestException("Invalid id");
+        	}
+        	int id = Integer.parseInt(ids);
+        	JcNode coll = new JcNode("coll");
+        	
+        	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                    MATCH.node(coll).label("collection"),
+                    WHERE.valueOf(coll.id()).EQUALS(id),
+                    NATIVE.cypher("RETURN true AS ok")
+            });
+        	
+        	if (res.resultOf(new JcBoolean("ok")).size() == 0)
+        		throw new RequestException("id does not exist in database");
+                
+            rc.next();
         });
 
         //
@@ -252,8 +275,8 @@ public class Collection extends BackendRouter {
             //Delete collections that have no members (or invites)
             Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node(coll).label("collection"),
-                WHERE.valueOf(coll.id()).EQUALS(id),
-                WHERE.NOT().existsPattern(
+                WHERE.valueOf(coll.id()).EQUALS(id).
+                AND().NOT().existsPattern(
                         X.node().label("user")
                         .relation()
                         .node(coll)),
