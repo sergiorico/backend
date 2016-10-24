@@ -6,6 +6,7 @@ public class TrustLevel {
     public static final int USER         = 999;
     public static final int REGISTERED   = 99;
     public static final int UNREGISTERED = 9;
+    public static final int UNKNOWN 	 = -9;
 
     /**
      * Compare access levels of a and b (compare(a,b)):
@@ -44,7 +45,7 @@ public class TrustLevel {
     }
 
     /**
-     * Convert a string representation to int. Unknown string = UNREGISTERED.
+     * Convert a string representation to int. 
      */
     public static int fromString(String repr) {
         switch (repr) {
@@ -53,7 +54,7 @@ public class TrustLevel {
         case "User": return USER;
         case "Registered": return REGISTERED;
         case "Unregistered": return UNREGISTERED;
-        default: return UNREGISTERED;
+        default: return UNKNOWN;
         }
     }
 }
