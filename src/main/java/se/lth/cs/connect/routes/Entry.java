@@ -337,7 +337,7 @@ public class Entry extends BackendRouter {
             rc.json().send("{\"message\": \"Ok\"}");
         });
 
-        // POST /new --> {message: "ok"}
+        // POST /new --> {message: "ok", id: {id}}
         POST("/new", (rc) -> {
             if (rc.getSession("email") == null)
                 throw new RequestException("Must be logged in.");
@@ -398,7 +398,7 @@ public class Entry extends BackendRouter {
             if (tagAsPending)
                 taxonomy.add(DO.SET(entry.property("pending")).to(true));
 
-            IClause[] query = new IClause[taxonomy.size() + 5];
+            IClause[] query = new IClause[taxonomy.size() + 5 + 1];
             query[0] = MATCH.node(unode).label("user").property("email").value(user.email);
             query[1] = MATCH.node(coll).label("collection");
             query[2] = WHERE.valueOf(coll.id()).EQUALS(collectionId);
@@ -407,10 +407,14 @@ public class Entry extends BackendRouter {
 
             for (int i = 0; i < taxonomy.size(); i++)
                 query[5 + i] = taxonomy.get(i);
+            
+            query[taxonomy.size() + 5] = NATIVE.cypher("RETURN id(entry) as id");
 
-            Database.query(rc.getLocal("db"), query);
+            JcQueryResult jqr = Database.query(rc.getLocal("db"), query);
+            String id = jqr.resultOf(new JcNumber("id")).get(0).toString();
+            
             // TODO: Return something proper
-            rc.json().send("{\"message\": \"Ok\"}");
+            rc.json().send("{\"message\": \"Ok\", \"id\": " + id + "}");
         });
     }
 

@@ -122,16 +122,46 @@ public class ITUserAPI extends PippoTest {
 	}
 	
 	/**
-	 * Verifies that the last person of a collections leaves the collection, the collection is deleted.
-	 * @throws JsonParseException 
+	 * Tests that the collection check filter does not accept a string an id and that the id exist in the database.
 	 */
 	@Test
-	public void testDeleteEmptyCollections() throws JsonParseException {
+	public void testCollectionIdCheckExistanceFilter(){
+		
+		expect().
+			statusCode(400).
+		when().
+			get("v1/collection/" + 19453324 + "/stats"); 
+		
+		expect().
+			statusCode(400).
+		when().
+			get("v1/collection/" + "hej" + "/stats");
+	}
+	
+	/**
+	 * Tests that when the last person of a collections leaves the collection, the collection is deleted.
+	 * Also tests that entries that are part of that collection are also deleted.
+	 * @throws JsonParseException 
+	 * @throws UnsupportedEncodingException 
+	 */
+	@Test
+	public void testDeleteEmptyCollections() throws JsonParseException, UnsupportedEncodingException {
 		Mailbox mailbox = new Mailbox();
 		app.useMailClient(mailbox);
 		
 		SessionFilter session = new SessionFilter();
 		register("Filippa@serp.test", "hej", session);	
+		
+		//Verify user.
+		String verify = URLParser.find(mailbox.top().content);
+		verify = verify.substring(verify.indexOf("token=") + 6);
+		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
+		given().
+			param("token", verify).
+		expect().
+			statusCode(200).
+		when().
+			get("/v1/account/verify");
 		
 		Response res = given().
 			filter(session).param("name", "testcoll").
@@ -144,6 +174,20 @@ public class ITUserAPI extends PippoTest {
 		JsonPath jp = res.jsonPath();
 		String id = jp.getString("id");
 		
+		//Add entry. json String can be whatever as long as it is a valid json String for an entry.
+		String json = "{ \"entryType\": \"challenge\", \"description\": \"test\", \"serpClassification\": {}, \"collection\": " + id + " }";
+		res = given().
+			contentType("application/json").
+			filter(session).body(json).
+		expect().
+			statusCode(200).
+			contentType("application/json").
+		when().
+			post("v1/entry/new");
+		
+		jp = res.jsonPath();
+		String entryID = jp.getString("id");
+		
 		given().
 			filter(session).
 		expect().
@@ -155,6 +199,12 @@ public class ITUserAPI extends PippoTest {
 			statusCode(400).
 		when().
 			get("v1/collection/" + id + "/stats");
+		
+		//Test that entry was also automatically deleted.
+		expect().
+			statusCode(400).
+		when().
+			get("v1/entry/" + entryID);
 		
 		delete(session);
 	}
