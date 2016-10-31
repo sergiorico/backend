@@ -182,15 +182,15 @@ Admin
    :>json array []: An array of `Entry`_ objects.
 
 
-.. http:post /v1/admin/accept-entry
+.. http:post:: /v1/admin/accept-entry
 
     :integer entry: **Required**. ID of entry to accept.
 
-.. http:post /v1/admin/reject-entry
+.. http:post:: /v1/admin/reject-entry
 
     :integer entry: **Required**. ID of entry to reject.
 
-.. http:put /v1/admin/set-trust
+.. http:put:: /v1/admin/set-trust
 
     :string email: **Required**. Email of user affected user.
     :string trust: **Required**. New trust level (Admin, Verified, User, Registered, Unregistered).
