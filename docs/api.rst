@@ -125,43 +125,43 @@ access check 1
 
 .. http:get:: /v1/account/self
 
-.. http:post /v1/account/logout
+.. http:post:: /v1/account/logout
 
-.. http:post /v1/account/delete
+.. http:post:: /v1/account/delete
 
-.. http:post /v1/account/change-password
+.. http:post:: /v1/account/change-password
 
-.. http:get /v1/account/invites
+.. http:get:: /v1/account/invites
 
-.. http:get /v1/account/{email}
+.. http:get:: /v1/account/{email}
 
 Collection
 ----------
-.. http:post /v1/collection/
+.. http:post:: /v1/collection/
 
-.. http:get /v1/collection/{id}/graph
+.. http:get:: /v1/collection/{id}/graph
 
-.. http:get /v1/collection/{id}/stats
+.. http:get:: /v1/collection/{id}/stats
 
-.. http:get /v1/collection/{id}/entries
+.. http:get:: /v1/collection/{id}/entries
 
 access check 1
 
-.. http:post /v1/collection/{id}/accept
+.. http:post:: /v1/collection/{id}/accept
 
 access check 2
 
-.. http:post /v1/collection/{id}/invite
+.. http:post:: /v1/collection/{id}/invite
 
-.. http:post /v1/collection/{id}/leave
+.. http:post:: /v1/collection/{id}/leave
 
-.. http:post /v1/collection/{id}/kick
+.. http:post:: /v1/collection/{id}/kick
 
-.. http:post /v1/collection/{id}/removeEntry
+.. http:post:: /v1/collection/{id}/removeEntry
 
-.. http:post /v1/collection/{id}/addEntry
+.. http:post:: /v1/collection/{id}/addEntry
 
-.. http:get /v1/collection/{id}/members
+.. http:get:: /v1/collection/{id}/members
 
 
 Admin
