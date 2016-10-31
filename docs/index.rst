@@ -22,7 +22,7 @@ This is documentation for `SERP Connect`_: `backend`_ and `frontend`_.
 
 .. _user-guide:
 
-    .. toctree::
+.. toctree::
     :maxdepth: 2
     :caption: Developer Documentation
 
