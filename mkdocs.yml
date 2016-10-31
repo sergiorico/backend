@@ -8,5 +8,5 @@ pages:
     - 'Internals':
         - 'Trust Levels': 'internals/trust.md'
         - 'Sessions': 'internals/sessions.md'
-    - API: api.md
+    - API: api.rst
 theme: readthedocs
