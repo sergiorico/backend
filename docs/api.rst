@@ -1,10 +1,17 @@
-SERP Connect API
-================
+API
+===
 This is a specification of the public API.
 
+Status codes are generally:
 
-Entries
--------
+    200: ok
+    400: something wrong with the request
+    401: authentication error
+    404: not found
+    500: server or database error
+
+Entry graph
+-----------
 .. http:get:: /v1/entry
 
     Fetch all entries and edges in the database.
@@ -18,6 +25,21 @@ Entries
 
    :>json array nodes: An array of `Entry`_ objects
    :>json array edges: An array of `Edge`_ objects
+
+Taxonomy
+--------
+.. http:get:: /v1/entry/taxonomy
+
+    Get the combined taxonomy for the whole database.
+
+   .. sourcecode:: js
+      
+      {
+          "ADAPTING": ["YES, SIR"],
+          "IMPROVING": ["NO, SIR"]
+      }
+
+   :>json array <key>: each key maps to the entities/samples used to classify itself
 
 Entry
 -----
@@ -50,8 +72,8 @@ Entry
    :>json string date: currently broken, a standard javascript date
    :>json boolean pending: is entry pending admin approval
 
-Taxonomy
-~~~~~~~~
+Entry Taxonomy
+~~~~~~~~~~~~~~
 .. http:get:: /v1/entry/{id}/taxonomy
 
    :arg id: An entry id.
@@ -76,4 +98,72 @@ Taxonomy
       }
 
    :>json array <key>: each key corresponds to a classification with entities
+
+Submit Entry
+~~~~~~~~~~~~
+.. http:post:: /v1/entry/new
+
+Edit Entry
+~~~~~~~~~~
+.. http:put:: /v1/entry/{id}
+
+Account
+-------
+.. http:post:: /v1/account/login
+
+.. http:post:: /v1/account/register
+
+.. http:post:: /v1/account/reset-password
+
+.. http:get:: /v1/account/reset-password
+
+access check 1
+
+.. http:get:: /v1/account/login
+
+.. http:get:: /v1/account/collections
+
+.. http:get:: /v1/account/self
+
+.. http:post /v1/account/logout
+
+.. http:post /v1/account/delete
+
+.. http:post /v1/account/change-password
+
+.. http:get /v1/account/invites
+
+.. http:get /v1/account/{email}
+
+Collection
+----------
+.. http:post /v1/collection/
+
+.. http:get /v1/collection/{id}/graph
+
+.. http:get /v1/collection/{id}/stats
+
+.. http:get /v1/collection/{id}/entries
+
+access check 1
+
+.. http:post /v1/collection/{id}/accept
+
+access check 2
+
+.. http:post /v1/collection/{id}/invite
+
+.. http:post /v1/collection/{id}/leave
+
+.. http:post /v1/collection/{id}/kick
+
+.. http:post /v1/collection/{id}/removeEntry
+
+.. http:post /v1/collection/{id}/addEntry
+
+.. http:get /v1/collection/{id}/members
+
+
+Admin
+-----
 

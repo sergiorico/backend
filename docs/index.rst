@@ -1,24 +1,15 @@
 SERP Connect Docs
 =================
 
-This is documentation for `SERP Connect`_: `backend`_ and `frontend`_.
+This is documentation for `SERP Connect`, here you can find docs detailing the
+inner and outer workings of the SERP Connect `backend`_ and `frontend`_.
 
  .. _SERP Connect: https://serpconnect.cs.lth.se/
  .. _backend: https://github.com/emenlu/connect/
  .. _frontend: https://github.com/emenlu/website/
 
-
- * :ref:`internals`
  * :ref:`user-guide`
-
-.. _internals:
-
-.. toctree::
-    :maxdepth: 2
-    :caption: Internals
-
-    internals/trust
-    internals/sessions
+ * :ref:`internals`
 
 .. _user-guide:
 
@@ -30,3 +21,13 @@ This is documentation for `SERP Connect`_: `backend`_ and `frontend`_.
     user-guide/contributing
     user-guide/development
     user-guide/testing
+
+.. _internals:
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Internals
+
+    internals/trust
+    internals/sessions
+
