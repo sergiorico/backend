@@ -1,5 +1,5 @@
-Public API
-==========
+SERP Connect API
+================
 This is a specification of the public API.
 
 
