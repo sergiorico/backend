@@ -11,20 +11,22 @@ This is documentation for `SERP Connect`_: `backend`_ and `frontend`_.
  * :ref:`internals`
  * :ref:`user-guide`
 
- .. _internals:
+.. _internals:
 
- .. toctree::
+.. toctree::
     :maxdepth: 2
     :caption: Internals
 
     internals/trust
     internals/sessions
 
- .. _user-guide:
+.. _user-guide:
 
- .. toctree::
+    .. toctree::
     :maxdepth: 2
     :caption: Developer Documentation
 
     api
-    user-guide/*
+    user-guide/contributing
+    user-guide/development
+    user-guide/testing

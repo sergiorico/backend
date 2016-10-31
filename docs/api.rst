@@ -1,3 +1,8 @@
+Public API
+==========
+This is a specification of the public API.
+
+
 Entries
 -------
 .. http:get:: /v1/entry
