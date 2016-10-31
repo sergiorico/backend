@@ -4,6 +4,7 @@ This is a specification of the public API.
 
 Status codes are generally:
 
+::
     200: ok
     400: something wrong with the request
     401: authentication error
@@ -166,4 +167,41 @@ access check 2
 
 Admin
 -----
+.. http:get:: /v1/admin
+
+    Returns 200 if current session user is admin.
+
+.. http:get:: /v1/admin/pending
+
+    Get all pending entries.
+
+   .. sourcecode:: js
+
+      [ENTRIES]
+
+   :>json array []: An array of `Entry`_ objects.
+
+
+.. http:post /v1/admin/accept-entry
+
+    :integer entry: **Required**. ID of entry to accept.
+
+.. http:post /v1/admin/reject-entry
+
+    :integer entry: **Required**. ID of entry to reject.
+
+.. http:put /v1/admin/set-trust
+
+    :string email: **Required**. Email of user affected user.
+    :string trust: **Required**. New trust level (Admin, Verified, User, Registered, Unregistered).
+
+.. http:get:: /v1/admin/users
+
+    Get all users.
+
+   .. sourcecode:: js
+
+      [USER]
+
+   :> json array []: An array of `Account`_ objects.
 
