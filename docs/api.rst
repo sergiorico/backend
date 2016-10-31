@@ -7,7 +7,7 @@ Entries
 -------
 .. http:get:: /v1/entry
 
-      Fetch all entries and edges in the database.
+    Fetch all entries and edges in the database.
 
    .. sourcecode:: js
 
@@ -25,11 +25,11 @@ Entry
 
    :arg id: An entry id.
 
-       Retrieve information of a specific entry.
+    Retrieve information of a specific entry.
 
    .. sourcecode:: js
 
-        {
+      {
             "id": 55,
             "hash": "YOnPVli1utklw1a3LXiw9pBl6gmpsd4BUabV9I1UyhA=",
             "type": "research",
@@ -39,7 +39,7 @@ Entry
             "description": null,
             "date": null,
             "pending": false
-        }
+      }
 
    :>json integer id: a (recycled) unique id
    :>json string hash: unique hash of this information
@@ -56,11 +56,11 @@ Taxonomy
 
    :arg id: An entry id.
 
-       Retrieve the taxonomy of a specific entry.
+    Retrieve the taxonomy of a specific entry.
 
    .. sourcecode:: js
 
-         {
+      {
             "INFORMATION": [
                 "No data currently collected"
             ],
@@ -73,7 +73,7 @@ Taxonomy
                 "testing-level trade-off (function, interaction)",
                 "automation trade-off"
             ]
-        }
+      }
 
-    :>json array <key>: each key corresponds to a classification with entities
+   :>json array <key>: each key corresponds to a classification with entities
 
