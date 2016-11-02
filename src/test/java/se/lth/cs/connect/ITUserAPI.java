@@ -216,11 +216,11 @@ public class ITUserAPI extends PippoTest {
 	}
 	
 	/**
-	 * Tests that a new collection can not be created when creating a new entry.
+	 * Tests that a new collection is not created when the collection id is a string when making a new entry.
 	 * @throws UnsupportedEncodingException 
 	 */
 	@Test
-	public void testNoCollectionCreationOnNewEntry() throws UnsupportedEncodingException{
+	public void testNoCollectionCreationOnNewEntryWhenCollectionIdIsString() throws UnsupportedEncodingException{
 		Mailbox mailbox = new Mailbox();
 		app.useMailClient(mailbox);
 		
