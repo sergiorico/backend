@@ -188,6 +188,12 @@ public class ITUserAPI extends PippoTest {
 		jp = res.jsonPath();
 		String entryID = jp.getString("id");
 		
+		//Simple check to confirm that entry was created.
+		expect().
+			statusCode(200).
+		when().
+			get("v1/entry/" + entryID);
+		
 		given().
 			filter(session).
 		expect().
@@ -207,6 +213,42 @@ public class ITUserAPI extends PippoTest {
 			get("v1/entry/" + entryID);
 		
 		delete(session);
+	}
+	
+	/**
+	 * Tests that a new collection can not be created when creating a new entry.
+	 * @throws UnsupportedEncodingException 
+	 */
+	@Test
+	public void testNoCollectionCreationOnNewEntry() throws UnsupportedEncodingException{
+		Mailbox mailbox = new Mailbox();
+		app.useMailClient(mailbox);
+		
+		SessionFilter session = new SessionFilter();
+		register("Filippaaaaa@serp.test", "hejaaaaa", session);
+		
+		//Verify user.
+		String verify = URLParser.find(mailbox.top().content);
+		verify = verify.substring(verify.indexOf("token=") + 6);
+		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
+		given().
+			param("token", verify).
+		expect().
+			statusCode(200).
+		when().
+			get("/v1/account/verify");
+
+		//Create entry. collection has a string value instead of an integer to test that it doesn't create a new collection.
+		String json = "{ \"entryType\": \"challenge\", \"description\": \"test\", \"serpClassification\": {}, \"collection\": \"hejj\" }";
+		given().
+			contentType("application/json").
+			filter(session).body(json).
+		expect().
+			statusCode(400).
+		when().
+			post("v1/entry/new");
+		
+		delete(session);	
 	}
 
 	@Test

@@ -351,17 +351,16 @@ public class Entry extends BackendRouter {
                 e.contact = user.email;
 
             int collectionId = -1;
-            String newCollectionName = null;
             try {
                 collectionId = Integer.parseInt(e.collection);
                 if (collectionId == -1)
                     collectionId = user.defaultCollection;
             } catch (NumberFormatException nfe) {
-                newCollectionName = e.collection;
+                throw new RequestException("Collection Id must to an integer");
             }
-
+            
             boolean tagAsPending = !TrustLevel.authorize(user.trust, TrustLevel.VERIFIED);
-
+            
             // Validate
             String err = e.validate();
             if (err != null)
@@ -372,15 +371,7 @@ public class Entry extends BackendRouter {
             JcNode unode = new JcNode("user");
             JcNode coll = new JcNode("collection");
 
-            if (collectionId == -1 && newCollectionName != null) {
-                JcNumber cid = new JcNumber("id");
-                collectionId = ((java.math.BigDecimal)(Database.query(rc.getLocal("db"), new IClause[] {
-                    MATCH.node(unode).label("user").property("email").value(user.email),
-                    CREATE.node(unode).relation().out().type("MEMBER_OF")
-                        .node(coll).label("collection").property("name").value(newCollectionName),
-                    RETURN.value(coll.id()).AS(cid)
-                }).resultOf(cid).get(0))).intValue();
-            } else {
+            if(collectionId != -1){
                 // User must have be connected to the specified collection id
                 int access = Database.query(rc.getLocal("db"), new IClause[] {
                     MATCH.node().label("user").property("email").value(user.email)
