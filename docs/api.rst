@@ -1,15 +1,14 @@
 API
 ===
-This is a specification of the public API.
+This is the specification of the public API.
 
 Status codes are generally:
 
-::
-    200: ok
-    400: something wrong with the request
-    401: authentication error
-    404: not found
-    500: server or database error
+ - 200: ok
+ - 400: something wrong with the request
+ - 401: authentication error
+ - 404: not found
+ - 500: server or database error
 
 Entry graph
 -----------
@@ -44,13 +43,25 @@ Taxonomy
 
 Entry
 -----
-.. http:get:: /v1/entry/{id}
-
-   :arg id: An entry id.
+.. http:get:: /v1/entry/(int:entry_id)
 
     Retrieve information of a specific entry.
 
-   .. sourcecode:: js
+    **Example request**:
+
+    .. sourcecode:: http
+
+        GET /v1/entry/55 HTTP/1.1
+        Host: api.serpconnect.cs.lth.se
+        Accept: application/json
+
+   **Example response**:
+
+   .. sourcecode:: http
+
+      HTTP/1.1 200 ok
+      Vary: Accept
+      Content-Type: application/json
 
       {
             "id": 55,
@@ -73,8 +84,9 @@ Entry
    :>json string date: currently broken, a standard javascript date
    :>json boolean pending: is entry pending admin approval
 
-Entry Taxonomy
-~~~~~~~~~~~~~~
+   :statuscode 200: ok
+   :statuscode 404: no entry with that id exists at the moment (it might have existed but was deleted)
+
 .. http:get:: /v1/entry/{id}/taxonomy
 
    :arg id: An entry id.
@@ -100,9 +112,18 @@ Entry Taxonomy
 
    :>json array <key>: each key corresponds to a classification with entities
 
-Submit Entry
-~~~~~~~~~~~~
+
 .. http:post:: /v1/entry/new
+
+    :<json string entryType: 
+
+    Submit new entry.
+
+    .. sourcecode:: js
+
+        { response }
+
+    
 
 Edit Entry
 ~~~~~~~~~~
@@ -110,28 +131,47 @@ Edit Entry
 
 Account
 -------
+
+
 .. http:post:: /v1/account/login
+
 
 .. http:post:: /v1/account/register
 
+Reset password
+~~~~~~~~~~~~~~~~~~~~~~
 .. http:post:: /v1/account/reset-password
 
 .. http:get:: /v1/account/reset-password
 
 access check 1
 
+Check login status
+~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/login
 
+Get collections
+~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/collections
 
+Query self
+~~~~~~~~~~~~
 .. http:get:: /v1/account/self
 
+Logout
+~~~~~~~~~~~~~~
 .. http:post:: /v1/account/logout
 
+Delete account
+~~~~~~~~~~~~~~
 .. http:post:: /v1/account/delete
 
+Change password
+~~~~~~~~~~~~~~~
 .. http:post:: /v1/account/change-password
 
+Get collection invites
+~~~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/invites
 
 .. http:get:: /v1/account/{email}
