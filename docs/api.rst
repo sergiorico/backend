@@ -10,8 +10,8 @@ Status codes are generally:
  - 404: not found
  - 500: server or database error
 
-Entry graph
------------
+Graph
+-----
 .. http:get:: /v1/entry
 
     Fetch all entries and edges in the database.
@@ -26,8 +26,8 @@ Entry graph
    :>json array nodes: An array of `Entry`_ objects
    :>json array edges: An array of `Edge`_ objects
 
-Taxonomy
---------
+Graph Taxonomy
+~~~~~~~~~~~~~~
 .. http:get:: /v1/entry/taxonomy
 
     Get the combined taxonomy for the whole database.
@@ -43,25 +43,21 @@ Taxonomy
 
 Entry
 -----
+An entry is either a classified challenge or research result that a user 
+submitted to the database. Each entry consists of entry-specific information 
+and a classification. These two pieces of data must be queried separately.
+
+Find entry by id
+~~~~~~~~~~~~~~~~ 
 .. http:get:: /v1/entry/(int:entry_id)
 
-    Retrieve information of a specific entry.
+    :param entry_id: entry's unique id
+    :type entry_id: int
+    :resheader Content-Type: application/json
 
-    **Example request**:
+    Retrieve information of an entry specified by `entry_id`.
 
-    .. sourcecode:: http
-
-        GET /v1/entry/55 HTTP/1.1
-        Host: api.serpconnect.cs.lth.se
-        Accept: application/json
-
-   **Example response**:
-
-   .. sourcecode:: http
-
-      HTTP/1.1 200 ok
-      Vary: Accept
-      Content-Type: application/json
+   .. sourcecode:: js
 
       {
             "id": 55,
@@ -84,12 +80,15 @@ Entry
    :>json string date: currently broken, a standard javascript date
    :>json boolean pending: is entry pending admin approval
 
-   :statuscode 200: ok
    :statuscode 404: no entry with that id exists at the moment (it might have existed but was deleted)
 
-.. http:get:: /v1/entry/{id}/taxonomy
+Get entry taxonomy
+~~~~~~~~~~~~~~~~~~
+.. http:get:: /v1/entry/(int:entry_id)/taxonomy
 
-   :arg id: An entry id.
+    :param entry_id: entry's unique id
+    :type entry_id: int
+    :resheader Content-Type: application/json
 
     Retrieve the taxonomy of a specific entry.
 
@@ -112,22 +111,75 @@ Entry
 
    :>json array <key>: each key corresponds to a classification with entities
 
+   :statuscode 404: no entry with that id exists at the moment (it might have existed but was deleted)
 
+Submit new entry
+~~~~~~~~~~~~~~~~
 .. http:post:: /v1/entry/new
 
-    :<json string entryType: 
+    Submit a new entry.
+
+    :<json string entryType: either ``challenge`` or ``research``
+    :<json int collection: unique id of collection to add entry to
+    :<json string reference: only required for research entries, a list of references
+    :<json string doi: optional for research entries, a DOI of this publication
+    :<json string description: only required for challenge entries, describing the challenge
+    :<json json serpClassification: the SERP classification
+    :<json string date: representation of date
 
     Submit new entry.
 
+   **Example request json**:
+
     .. sourcecode:: js
 
-        { response }
+        {
+            entryType: "challenge",
+            collection: 2,
+            description: "how to do software dev without cookies?",
+            date: "Mon Sep 28 1998 14:36:22 GMT-0700 (PDT)",
+            serpClassification: {
+                "IMPROVING": ["cookies for software dev"],
+                "INFORMATION": ["hungry hungry devs"]
+            }
+        }
 
-    
+    **Example response**:
 
-Edit Entry
-~~~~~~~~~~
-.. http:put:: /v1/entry/{id}
+    .. sourcecode:: js 
+
+       {
+            "message": "ok"
+       }
+
+   :statuscode 400: bad request
+   :statuscode 401: must be logged in to submit new entries
+   :statuscode 403: must have verified email addr before submitting entries, must be member of collection
+
+Edit existing entry
+~~~~~~~~~~~~~~~~~~~
+.. http:put:: /v1/entry/(int:entry_id)
+
+    Edit taxonomy and/or fields of an existing entry. Request is same as `Submit new entry`_, but without a ``collection`` field. 
+
+    :param entry_id: unique id of entry
+    :type entry_id: int
+
+    **Example request**:
+
+    .. sourcecode:: js
+
+        {  
+            entryType: "challenge",
+            description: "how to do software dev without cookies?",
+            date: "Mon Sep 28 1998 14:36:22 GMT-0700 (PDT)",
+            serpClassification: {
+                "IMPROVING": ["cookies for software dev"],
+                "INFORMATION": ["hungry hungry devs"]
+            }
+        } 
+
+    :statuscode 403: must be member of at least one of the collections that own the entry
 
 Account
 -------
