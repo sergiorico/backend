@@ -5,4 +5,6 @@
 *.*~
 application.properties
 bin/
-.metadata/
+.metadata
+src/main/resources/conf/application.properties
+
