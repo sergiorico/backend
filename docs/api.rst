@@ -12,9 +12,11 @@ Status codes are generally:
 
 Graph
 -----
+A graph consists of entries and edges.
+
 .. http:get:: /v1/entry
 
-    Fetch all entries and edges in the database.
+   Fetch all entries and edges in the database.
 
    .. sourcecode:: js
 
@@ -30,7 +32,7 @@ Graph Taxonomy
 ~~~~~~~~~~~~~~
 .. http:get:: /v1/entry/taxonomy
 
-    Get the combined taxonomy for the whole database.
+   Get the combined taxonomy for the whole database.
 
    .. sourcecode:: js
       
@@ -41,34 +43,50 @@ Graph Taxonomy
 
    :>json array <key>: each key maps to the entities/samples used to classify itself
 
+Edge
+----
+An edge looks like this:
+
+.. sourcecode:: js
+
+   {
+       "source": 9,
+       "target": 13,
+       "type": "PLANNING"
+   }
+
+Where ``source`` is the origin entry node id, ``target`` is the targeted entity node id and ``type`` the (SERP) classification of this relation.
+
 Entry
 -----
 An entry is either a classified challenge or research result that a user 
 submitted to the database. Each entry consists of entry-specific information 
 and a classification. These two pieces of data must be queried separately.
+See `Find entry by id`_ and `Get entry taxonomy`_.
 
 Find entry by id
 ~~~~~~~~~~~~~~~~ 
 .. http:get:: /v1/entry/(int:entry_id)
+   
+   Retrieve information of an entry specified by `entry_id`.
 
-    :param entry_id: entry's unique id
-    :type entry_id: int
-    :resheader Content-Type: application/json
+   :param entry_id: entry's unique id
+   :type entry_id: int
+   :resheader Content-Type: application/json
 
-    Retrieve information of an entry specified by `entry_id`.
 
    .. sourcecode:: js
 
       {
-            "id": 55,
-            "hash": "YOnPVli1utklw1a3LXiw9pBl6gmpsd4BUabV9I1UyhA=",
-            "type": "research",
-            "contact": "space_monkey@planet.zoo",
-            "reference": "An In-Depth study of the Space Monkey Phenomenon",
-            "doi": "doi:xyz",
-            "description": null,
-            "date": null,
-            "pending": false
+          "id": 55,
+          "hash": "YOnPVli1utklw1a3LXiw9pBl6gmpsd4BUabV9I1UyhA=",
+          "type": "research",
+          "contact": "space_monkey@planet.zoo",
+          "reference": "An In-Depth study of the Space Monkey Phenomenon",
+          "doi": "doi:xyz",
+          "description": null,
+          "date": null,
+          "pending": false
       }
 
    :>json integer id: a (recycled) unique id
@@ -85,28 +103,30 @@ Find entry by id
 Get entry taxonomy
 ~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/entry/(int:entry_id)/taxonomy
+   
+   Retrieve the taxonomy of a specific entry.
 
-    :param entry_id: entry's unique id
-    :type entry_id: int
-    :resheader Content-Type: application/json
+   :param entry_id: entry's unique id
+   :type entry_id: int
 
-    Retrieve the taxonomy of a specific entry.
+   :resheader Content-Type: application/json
+
 
    .. sourcecode:: js
 
       {
-            "INFORMATION": [
-                "No data currently collected"
-            ],
-            "SOLVING": [
-                "unspecified"
-            ],
-            "PLANNING": [
-                "testing environment trade-off (simulated, real system production)",
-                "testing phase trade-off",
-                "testing-level trade-off (function, interaction)",
-                "automation trade-off"
-            ]
+          "INFORMATION": [
+              "No data currently collected"
+          ],
+          "SOLVING": [
+              "unspecified"
+          ],
+          "PLANNING": [
+              "testing environment trade-off (simulated, real system production)",
+              "testing phase trade-off",
+              "testing-level trade-off (function, interaction)",
+              "automation trade-off"
+          ]
       }
 
    :>json array <key>: each key corresponds to a classification with entities
@@ -117,7 +137,8 @@ Submit new entry
 ~~~~~~~~~~~~~~~~
 .. http:post:: /v1/entry/new
 
-    Submit a new entry.
+   Submit a new entry.
+
 
    :<json string entryType: either ``challenge`` or ``research``
    :<json int collection: unique id of collection to add entry to
@@ -125,31 +146,29 @@ Submit new entry
    :<json string doi: optional for research entries, a DOI of this publication
    :<json string description: only required for challenge entries, describing the challenge
    :<json json serpClassification: the SERP classification
-   :<json string date: representation of date
-
-    Submit new entry.
+   :<json string date: javascript date text representation
 
    **Example request json**:
 
     .. sourcecode:: js
 
         {
-            entryType: "challenge",
-            collection: 2,
-            description: "how to do software dev without cookies?",
-            date: "Mon Sep 28 1998 14:36:22 GMT-0700 (PDT)",
-            serpClassification: {
+            "entryType": "challenge",
+            "collection": 2,
+            "description": "how to do software dev without cookies?",
+            "date": "Mon Sep 28 1998 14:36:22 GMT-0700 (PDT)",
+            "serpClassification": {
                 "IMPROVING": ["cookies for software dev"],
                 "INFORMATION": ["hungry hungry devs"]
             }
         }
 
-    **Example response**:
+   **Example response**:
 
     .. sourcecode:: js 
 
        {
-            "message": "ok"
+           "message": "ok"
        }
 
    :statuscode 400: bad request
@@ -230,70 +249,149 @@ Get collection invites
 
 Collection
 ----------
+
+.. http:get:: /v1/collection/(int:id)/graph
+
+   Query the node graph of entries and entities.
+
+   :param id: collection id
+   :type id: int
+
+   .. sourcecode:: js
+
+      {
+         "nodes": [ENTRIES],
+         "edges": [EDGES]
+      }
+
+   :>json array nodes: An array of `Entry`_ objects.
+   :>json array edges: An array of `Edge`_ objects.
+
+.. http:get:: /v1/collection/(int:id)/stats
+
+   Query number of members and entries in this collection.
+
+   :param id: collection id
+   :type id: int
+
+   .. sourcecode:: js
+
+      {
+          "members": 2,
+          "entries": 9
+      }
+
+   :>json int members: number of users, excluding invited, that connected to this collection
+   :>json int entries: number of entries that are connected to this collection
+
+.. http:get:: /v1/collection/(int:id)/entries
+
+   Query connected entries.
+
+   :param id: collection id
+   :type id: int
+
+   .. sourcecode:: js
+
+      [Entry, Entry, ..., Entry]
+
+   :>jsonarr Entry: An `Entry`_ object.
+
 .. http:post:: /v1/collection/
 
-.. http:get:: /v1/collection/{id}/graph
+   Create a new collection.
 
-.. http:get:: /v1/collection/{id}/stats
+   :string name: the collection's name (doesn't have to be unique).
 
-.. http:get:: /v1/collection/{id}/entries
+Only requests with an attached session id, where the user is directly connected to the specified collection, are allowed access to these routes.
 
-access check 1
+.. http:post:: /v1/collection/(int:id)/accept
 
-.. http:post:: /v1/collection/{id}/accept
+   Accept an invitation to join a specific collection.
 
-access check 2
+   :param id: collection id
+   :type id: int
+   
+Only requests with an attached session id, where the user is directly connected to the specified collection, are allowed access to these routes.
 
-.. http:post:: /v1/collection/{id}/invite
+.. http:post:: /v1/collection/(int:id)/invite
 
-.. http:post:: /v1/collection/{id}/leave
+   :param id: collection id
+   :type id: int
+   
+.. http:post:: /v1/collection/(int:id)/leave
 
-.. http:post:: /v1/collection/{id}/kick
+   :param id: collection id
+   :type id: int
+   
+.. http:post:: /v1/collection/(int:id)/kick
 
-.. http:post:: /v1/collection/{id}/removeEntry
+   :param id: collection id
+   :type id: int
+   
+.. http:post:: /v1/collection/(int:id)/removeEntry
 
-.. http:post:: /v1/collection/{id}/addEntry
+   :param id: collection id
+   :type id: int
+   
+.. http:post:: /v1/collection/(int:id)/addEntry
 
-.. http:get:: /v1/collection/{id}/members
+   :param id: collection id
+   :type id: int
+   
+.. http:get:: /v1/collection/(int:id)/members
 
+   Query connected members.
+
+   :param id: collection id
+   :type id: int
+   
 
 Admin
 -----
+
+Only requests with an attached session id, where user's trust level is Admin, are allowed access to these routes.
+
 .. http:get:: /v1/admin
 
-    Returns 200 if current session user is admin.
+   Returns 200 if current session user is admin.
 
 .. http:get:: /v1/admin/pending
 
-    Get all pending entries.
+   Get all pending entries.
 
    .. sourcecode:: js
 
-      [ENTRIES]
+      [Entry, Entry, ..., Entry]
 
-   :>json array []: An array of `Entry`_ objects.
-
+   :>jsonarr Entry: An `Entry`_ object.
 
 .. http:post:: /v1/admin/accept-entry
 
-    :integer entry: **Required**. ID of entry to accept.
+   Accept a pending entry.
+
+   :integer entry: **Required**. ID of entry to accept.
 
 .. http:post:: /v1/admin/reject-entry
 
-    :integer entry: **Required**. ID of entry to reject.
+   Reject a pending entry.
+
+   :integer entry: **Required**. ID of entry to reject.
 
 .. http:put:: /v1/admin/set-trust
 
-    :string email: **Required**. Email of user affected user.
-    :string trust: **Required**. New trust level (Admin, Verified, User, Registered, Unregistered).
+   Set trust level of a specific user.
+
+   :string email: **Required**. Email of user affected user.
+   :string trust: **Required**. New trust level (Admin, Verified, User, Registered, Unregistered).
 
 .. http:get:: /v1/admin/users
 
-    Get all users.
+   Get all users.
 
    .. sourcecode:: js
 
-      [USER]
+      [USERS]
 
-   :> json array []: An array of `Account`_ objects.
+   :>json array [USERS]: An array of `Account`_ objects.
 

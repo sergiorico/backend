@@ -1,7 +1,7 @@
 SERP Connect Docs
 =================
 
-This is documentation for `SERP Connect`, here you can find docs detailing the
+This is documentation for `SERP Connect`_, here you can find docs detailing the
 inner and outer workings of the SERP Connect `backend`_ and `frontend`_.
 
  .. _SERP Connect: https://serpconnect.cs.lth.se/
@@ -14,20 +14,18 @@ inner and outer workings of the SERP Connect `backend`_ and `frontend`_.
 .. _user-guide:
 
 .. toctree::
-    :maxdepth: 2
-    :caption: Developer Documentation
+   :maxdepth: 2
+   :caption: Developer Documentation
 
-    api
-    user-guide/contributing
-    user-guide/development
-    user-guide/testing
-
-.. _internals:
+   api
+   user-guide/contributing
+   user-guide/development
+   user-guide/testing
 
 .. toctree::
-    :maxdepth: 2
-    :caption: Internals
+   :maxdepth: 2
+   :caption: Internals
 
-    internals/trust
-    internals/sessions
+
+   internals/docs
 
