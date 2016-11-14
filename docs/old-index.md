@@ -8,6 +8,6 @@ First steps
 
 Specifications
 --------------
- - [api](api.md)
+ - [api](api.rst)
  - [trust levels](internals/sessions.md)
  - [sessions](internals/sessions.md)
