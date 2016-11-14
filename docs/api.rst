@@ -10,6 +10,12 @@ Status codes are generally:
  - 404: not found
  - 500: server or database error
 
+If an endpoint has parameters they are required for the request to success 
+(otherwise a 400 is thrown). A parameter not found in the URL should be
+sent in the request body as ``application/x-www-form-urlencoded``. Some
+endpoints require input as JSON. The endpoint description will include a 
+special JSON Request object if JSON is required.
+
 Graph
 -----
 A graph consists of entries and edges.
@@ -28,6 +34,8 @@ A graph consists of entries and edges.
    :>json array nodes: An array of `Entry`_ objects
    :>json array edges: An array of `Edge`_ objects
 
+   :statuscode 200: ok, return graph
+
 Graph Taxonomy
 ~~~~~~~~~~~~~~
 .. http:get:: /v1/entry/taxonomy
@@ -42,6 +50,8 @@ Graph Taxonomy
       }
 
    :>json array <key>: each key maps to the entities/samples used to classify itself
+
+   :statuscode 200: ok, return taxonomy
 
 Edge
 ----
@@ -74,7 +84,6 @@ Find entry by id
    :type entry_id: int
    :resheader Content-Type: application/json
 
-
    .. sourcecode:: js
 
       {
@@ -98,6 +107,8 @@ Find entry by id
    :>json string date: currently broken, a standard javascript date
    :>json boolean pending: is entry pending admin approval
 
+   :statuscode 200: ok, return information
+   :statuscode 400: entry_id must be an int
    :statuscode 404: no entry with that id exists at the moment (it might have existed but was deleted)
 
 Get entry taxonomy
@@ -131,6 +142,8 @@ Get entry taxonomy
 
    :>json array <key>: each key corresponds to a classification with entities
 
+   :statuscode 200: ok, return entry taxonomy
+   :statuscode 400: entry_id must be an int
    :statuscode 404: no entry with that id exists at the moment (it might have existed but was deleted)
 
 Submit new entry
@@ -198,22 +211,52 @@ Edit existing entry
             }
         } 
 
-    :statuscode 403: must be member of at least one of the collections that own the entry
+   :statuscode 400: entry_id must be an int
+   :statuscode 403: must be member of at least one of the collections that own the entry
 
 Account
 -------
 
-
 .. http:post:: /v1/account/login
 
+   Authenticate user.
+
+   :statuscode 200: ok, user is logged in on the returned session token
+   :statuscode 400: email/passw combination is invalid
 
 .. http:post:: /v1/account/register
 
+   Register new user.
+
+   :statuscode 200: ok, registration email has been sent
+   :statuscode 400: email is already registered
+
 Reset password
 ~~~~~~~~~~~~~~~~~~~~~~
+The password reset process is simple:
+
+ * User clicks 'reset my password' and enters email
+ * (1) Email is sent to the email address
+ * User clicks on link in received email
+ * Backend checks token in url, sets session flag and forwards to frontend
+ * User enters new password and submits new password
+ * User is now logged in and the old password has been replaced
+
 .. http:post:: /v1/account/reset-password
 
-.. http:get:: /v1/account/reset-password
+   Send an password reset request. Matches (1) in the description above. 
+
+   :statuscode 200: ok
+
+.. http:get:: /v1/account/reset-password?(string:token)
+
+   Consume the reset token and return a new, flagged, session id. Forwards to frontend.
+
+   :param token: a querystring value of the reset token found in the email
+   :type token: string
+
+   :statuscode 302: ok, forwarding to frontend
+   :statuscode 400: invalid password reset token
 
 access check 1
 
@@ -267,6 +310,9 @@ Collection
    :>json array nodes: An array of `Entry`_ objects.
    :>json array edges: An array of `Edge`_ objects.
 
+   :statuscode 400: id must be an integer
+   :statuscode 404: no collection with that id exists
+
 .. http:get:: /v1/collection/(int:id)/stats
 
    Query number of members and entries in this collection.
@@ -284,9 +330,12 @@ Collection
    :>json int members: number of users, excluding invited, that connected to this collection
    :>json int entries: number of entries that are connected to this collection
 
+   :statuscode 400: id must be an integer
+   :statuscode 404: no collection with that id exists
+
 .. http:get:: /v1/collection/(int:id)/entries
 
-   Query connected entries.
+   Query entries in this collection.
 
    :param id: collection id
    :type id: int
@@ -297,11 +346,18 @@ Collection
 
    :>jsonarr Entry: An `Entry`_ object.
 
+   :statuscode 400: must provide id, id must be an integer
+   :statuscode 404: no collection with that id exists
+
 .. http:post:: /v1/collection/
 
    Create a new collection.
 
-   :string name: the collection's name (doesn't have to be unique).
+   :param name: the collection's name (doesn't have to be unique).
+   :type name: string
+
+   :statuscode 400: must provide name
+   :statuscode 401: must be logged in to create new collections
 
 Only requests with an attached session id, where the user is directly connected to the specified collection, are allowed access to these routes.
 
@@ -312,40 +368,82 @@ Only requests with an attached session id, where the user is directly connected 
    :param id: collection id
    :type id: int
    
+   :statuscode 400: must provide id, id must be an integer, must be invited to that exception
+   :statuscode 404: no collection with that id exists
+
 Only requests with an attached session id, where the user is directly connected to the specified collection, are allowed access to these routes.
 
 .. http:post:: /v1/collection/(int:id)/invite
 
+   Invite a user to a collection.
+
    :param id: collection id
    :type id: int
    
+   :<json string name: name of the collection
+
+   :statuscode 400: must provide id, id must be an integer
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
+
 .. http:post:: /v1/collection/(int:id)/leave
 
-   :param id: collection id
-   :type id: int
-   
-.. http:post:: /v1/collection/(int:id)/kick
+   Leave the collection.
 
    :param id: collection id
    :type id: int
+
+   :statuscode 400: must provide id, id must be an integer
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
    
 .. http:post:: /v1/collection/(int:id)/removeEntry
 
-   :param id: collection id
-   :type id: int
-   
-.. http:post:: /v1/collection/(int:id)/addEntry
+   Remove an entry from the collection.
 
    :param id: collection id
    :type id: int
+   
+   :<json int entryId: id of entry to remove
+
+   :statuscode 400: must provide id, id must be an integer
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
+
+.. http:post:: /v1/collection/(int:id)/addEntry
+
+   Add an existing entry to the collection.
+
+   :param id: collection id
+   :type id: int
+
+   :<json int entryId: id of entry to add
+
+   :statuscode 400: must provide id, id must be an integer
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
    
 .. http:get:: /v1/collection/(int:id)/members
 
-   Query connected members.
+   Query members in this collection.
 
    :param id: collection id
    :type id: int
    
+   .. sourcecode:: js
+
+      [User, ..., User]
+
+   :>jsonarr User: An `Account`_ object.
+
+   :statuscode 400: must provide id, id must be an integer
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
 
 Admin
 -----
@@ -354,7 +452,11 @@ Only requests with an attached session id, where user's trust level is Admin, ar
 
 .. http:get:: /v1/admin
 
-   Returns 200 if current session user is admin.
+   Check if current user (via session token) is an admin.
+
+   :statuscode 200: user is an admin
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
 
 .. http:get:: /v1/admin/pending
 
@@ -366,24 +468,50 @@ Only requests with an attached session id, where user's trust level is Admin, ar
 
    :>jsonarr Entry: An `Entry`_ object.
 
+   :statuscode 200: ok, return pending entries
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
+
 .. http:post:: /v1/admin/accept-entry
 
    Accept a pending entry.
 
-   :integer entry: **Required**. ID of entry to accept.
+   :param entry: ID of entry to accept.
+   :type entry: int
+
+   :statuscode 200: ok, entry is approved
+   :statuscode 400: entry is not an int
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
+   :statuscode 404: no such entry exists
 
 .. http:post:: /v1/admin/reject-entry
 
    Reject a pending entry.
 
-   :integer entry: **Required**. ID of entry to reject.
+   :param entry: ID of entry to reject.
+   :type entry: int
+
+   :statuscode 200: ok, entry is rejected
+   :statuscode 400: entry is not an int
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
+   :statuscode 404: no such entry exists
 
 .. http:put:: /v1/admin/set-trust
 
    Set trust level of a specific user.
 
-   :string email: **Required**. Email of user affected user.
-   :string trust: **Required**. New trust level (Admin, Verified, User, Registered, Unregistered).
+   :param email: Email of user affected user.
+   :type email: string
+
+   :param trust: New trust level (Admin, Verified, User, Registered, Unregistered).
+   :type trust: string
+
+   :statuscode 200: ok, user has new trust level
+   :statuscode 400: invalid trust level, must provide email, must provide trust, no such user exists
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
 
 .. http:get:: /v1/admin/users
 
@@ -391,7 +519,10 @@ Only requests with an attached session id, where user's trust level is Admin, ar
 
    .. sourcecode:: js
 
-      [USERS]
+      [User, User, ..., User]
 
-   :>json array [USERS]: An array of `Account`_ objects.
+   :>jsonarr User: An `Account`_ object.
 
+   :statuscode 200: ok, return users
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
