@@ -119,13 +119,13 @@ Submit new entry
 
     Submit a new entry.
 
-    :<json string entryType: either ``challenge`` or ``research``
-    :<json int collection: unique id of collection to add entry to
-    :<json string reference: only required for research entries, a list of references
-    :<json string doi: optional for research entries, a DOI of this publication
-    :<json string description: only required for challenge entries, describing the challenge
-    :<json json serpClassification: the SERP classification
-    :<json string date: representation of date
+   :<json string entryType: either ``challenge`` or ``research``
+   :<json int collection: unique id of collection to add entry to
+   :<json string reference: only required for research entries, a list of references
+   :<json string doi: optional for research entries, a DOI of this publication
+   :<json string description: only required for challenge entries, describing the challenge
+   :<json json serpClassification: the SERP classification
+   :<json string date: representation of date
 
     Submit new entry.
 
