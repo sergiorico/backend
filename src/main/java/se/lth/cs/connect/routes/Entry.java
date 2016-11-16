@@ -371,19 +371,16 @@ public class Entry extends BackendRouter {
             JcNode unode = new JcNode("user");
             JcNode coll = new JcNode("collection");
 
-            if(collectionId != -1){
-                // User must have be connected to the specified collection id
-                int access = Database.query(rc.getLocal("db"), new IClause[] {
-                    MATCH.node().label("user").property("email").value(user.email)
-                        .relation().type("MEMBER_OF")
-                        .node(coll).label("collection"),
-                    WHERE.valueOf(coll.id()).EQUALS(collectionId),
-                    NATIVE.cypher("RETURN true as ok")
-                }).resultOf(new JcBoolean("ok")).size();
+            int access = Database.query(rc.getLocal("db"), new IClause[] {
+                MATCH.node().label("user").property("email").value(user.email)
+                    .relation().type("MEMBER_OF")
+                    .node(coll).label("collection"),
+                WHERE.valueOf(coll.id()).EQUALS(collectionId),
+                NATIVE.cypher("RETURN true as ok")
+            }).resultOf(new JcBoolean("ok")).size();
 
-                if (access == 0)
-                    throw new RequestException(403, "You don't have access to that collection.");
-            }
+            if (access == 0)
+                throw new RequestException(403, "You don't have access to that collection.");
 
             List<IClause> taxonomy = e.taxonomy(entry);
             if (tagAsPending)
