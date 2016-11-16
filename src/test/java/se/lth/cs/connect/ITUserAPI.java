@@ -104,18 +104,8 @@ public class ITUserAPI extends PippoTest {
 		assertThat("Recipient must match registered email",
 				mailbox.top().recipient, is(equalTo("test-reg@serptest.test")));
 		
-		String verify = URLParser.find(mailbox.top().content);
-		verify = verify.substring(verify.indexOf("token=") + 6);
-		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
+		String verify = verifyUser(mailbox);
 		assertThat("Must find link in email", verify, not(equalTo("")));		
-
-		given().
-			//filter(sessionFilter).
-			param("token", verify).
-		expect().
-			statusCode(200).
-		when().
-			get("/v1/account/verify");
 		
 		// Cleanup
 		delete(session);
@@ -152,16 +142,7 @@ public class ITUserAPI extends PippoTest {
 		SessionFilter session = new SessionFilter();
 		register("Filippa@serp.test", "hej", session);	
 		
-		//Verify user.
-		String verify = URLParser.find(mailbox.top().content);
-		verify = verify.substring(verify.indexOf("token=") + 6);
-		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
-		given().
-			param("token", verify).
-		expect().
-			statusCode(200).
-		when().
-			get("/v1/account/verify");
+		verifyUser(mailbox);
 		
 		Response res = given().
 			filter(session).param("name", "testcoll").
@@ -207,6 +188,33 @@ public class ITUserAPI extends PippoTest {
 			get("v1/entry/" + entryID);
 		
 		delete(session);
+	}
+	
+	/**
+	 * Tests that a new collection is not created when the collection id is a string when making a new entry.
+	 * @throws UnsupportedEncodingException 
+	 */
+	@Test
+	public void testNoCollectionCreationOnNewEntryWhenCollectionIdIsString() throws UnsupportedEncodingException{
+		Mailbox mailbox = new Mailbox();
+		app.useMailClient(mailbox);
+		
+		SessionFilter session = new SessionFilter();
+		register("Filippaaaaa@serp.test", "hejaaaaa", session);
+		
+		verifyUser(mailbox);
+
+		//Create entry. collection has a string value instead of an integer to test that it doesn't create a new collection.
+		String json = "{ \"entryType\": \"challenge\", \"description\": \"test\", \"serpClassification\": {}, \"collection\": \"hejj\" }";
+		given().
+			contentType("application/json").
+			filter(session).body(json).
+		expect().
+			statusCode(400).
+		when().
+			post("v1/entry/new");
+		
+		delete(session);	
 	}
 
 	@Test
@@ -297,6 +305,20 @@ public class ITUserAPI extends PippoTest {
 		statusCode(200);
 
 		delete(session);
+	}
+	
+	private String verifyUser(Mailbox mailbox) throws UnsupportedEncodingException{
+		String verify = URLParser.find(mailbox.top().content);
+		verify = verify.substring(verify.indexOf("token=") + 6);
+		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
+		given().
+			param("token", verify).
+		expect().
+			statusCode(200).
+		when().
+			get("/v1/account/verify");
+		
+		return verify;
 	}
 	
 	
