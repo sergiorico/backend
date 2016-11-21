@@ -1,3 +1,6 @@
+Sessions
+========
+
 Some notes on session management:
 
 - A session is mainly a cookie (`JSESSIONID`) that has some data on the server

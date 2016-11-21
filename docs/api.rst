@@ -217,6 +217,8 @@ Edit existing entry
 Account
 -------
 
+Authenticate
+~~~~~~~~~~~~
 .. http:post:: /v1/account/login
 
    Authenticate user.
@@ -224,6 +226,8 @@ Account
    :statuscode 200: ok, user is logged in on the returned session token
    :statuscode 400: email/passw combination is invalid
 
+Register an account
+~~~~~~~~~~~~~~~~~~~
 .. http:post:: /v1/account/register
 
    Register new user.
@@ -236,7 +240,7 @@ Reset password
 The password reset process is simple:
 
  * User clicks 'reset my password' and enters email
- * (1) Email is sent to the email address
+ * Email is sent to the email address (1)
  * User clicks on link in received email
  * Backend checks token in url, sets session flag and forwards to frontend
  * User enters new password and submits new password
@@ -244,7 +248,7 @@ The password reset process is simple:
 
 .. http:post:: /v1/account/reset-password
 
-   Send an password reset request. Matches (1) in the description above. 
+   Send a password reset request. Matches (1) in the description above. 
 
    :statuscode 200: ok
 
@@ -258,37 +262,100 @@ The password reset process is simple:
    :statuscode 302: ok, forwarding to frontend
    :statuscode 400: invalid password reset token
 
-access check 1
+Only requests with an attached session id that is considered authenticated (i.e. after `Authenticate`_) are allowed access to routes below.
 
 Check login status
 ~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/login
 
+   Test if session is authenticated/user is logged in.
+
+   :statuscode 200: ok logged in
+   :statuscode 401: no not logged in
+
 Get collections
 ~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/collections
+
+   Query a list of collections that the currently authenticated user is a member of.
+
+   :resheader Content-Type: application/json
+
+   .. sourcecode:: js
+
+      [ { "name": "default", "id": 2 } ]
+
+   :>jsonarr name: non-unique name of the collection
+   :>jsonarr id: unique id of the collection
+
 
 Query self
 ~~~~~~~~~~~~
 .. http:get:: /v1/account/self
 
+   Get an at-a-glance snapshot of stats and data about the current user.
+
+   :resheader Content-Type: application/json
+
+   .. sourcecode:: js
+
+      {
+         "email": "zoo@world.gov",
+         "trust": "Admin",
+         "collection": 2,
+         "collections": [COLLECTIONS]
+         "entries": [ENTRIES]
+      }
+
+   :>json string email: user's email
+   :>json string trust: trust level (see :ref:`trust`)
+   :>json integer collection: id of the user's default collection
+   :>json array collections: An array of collection objects, equivalent to `Get collections`_
+   :>json array entries: An array of approved/pending `Entry`_ objects this user has submitted.
+
 Logout
 ~~~~~~~~~~~~~~
 .. http:post:: /v1/account/logout
+
+   Logout this user and reset the session.
+
+   :statuscode 200: ok
 
 Delete account
 ~~~~~~~~~~~~~~
 .. http:post:: /v1/account/delete
 
+   **WARNING** - Delete the currently authenticated user.
+
 Change password
 ~~~~~~~~~~~~~~~
 .. http:post:: /v1/account/change-password
+
+   Change authentication password. Does not require subsequent requests to re-authenticate.
+
+   :<json string old: old password
+   :<json string new: new password
+
+   :statuscode 200: ok
+   :statuscode 400: wrong old password
 
 Get collection invites
 ~~~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/invites
 
-.. http:get:: /v1/account/{email}
+   Query list of collections have user is invited to. Return equivalent to `Get collections`_.
+
+Query user by email
+~~~~~~~~~~~~~~~~~~~
+.. http:get:: /v1/account/(string:email)
+
+   Perform `Query self`_ but target a specific user. Returns same output.
+
+   :param email: email of user
+   :type email: string
+
+   :statuscode 200: ok
+   :statuscode 400: invalid email
 
 Collection
 ----------
