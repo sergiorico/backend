@@ -137,6 +137,8 @@ public class Graph {
                     description = prop.getValue().toString().replace("\\'", "'"); break;
                 case "pending":
                     pending = (Boolean)prop.getValue(); break;
+                case "date":
+                	date = prop.getValue().toString(); break;
                 default: break;
                 }
             }

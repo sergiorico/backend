@@ -95,7 +95,11 @@ public class Admin extends BackendRouter {
             String email = rc.getParameter("email").toString();
             String trust = rc.getParameter("trust").toString();
             int level = TrustLevel.fromString(trust);
-
+            
+            if (level == TrustLevel.UNKNOWN){
+            	throw new RequestException("Invalid trust level.");
+            }
+            
             if (email == null)
                 throw new RequestException("Invalid email.");
 

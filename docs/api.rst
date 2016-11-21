@@ -219,6 +219,7 @@ Account
 
 Authenticate
 ~~~~~~~~~~~~
+
 .. http:post:: /v1/account/login
 
    Authenticate user.
@@ -287,7 +288,6 @@ Get collections
 
    :>jsonarr name: non-unique name of the collection
    :>jsonarr id: unique id of the collection
-
 
 Query self
 ~~~~~~~~~~~~
