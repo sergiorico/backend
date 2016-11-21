@@ -3,6 +3,8 @@
 .settings
 .project
 *.*~
+docsbin/
+venv/
 application.properties
 bin/
 .metadata/

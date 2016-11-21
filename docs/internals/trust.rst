@@ -1,3 +1,8 @@
+.. _trust:
+
+Trust
+=====
+
 All accounts have a trust level that is used throughout the API to determine authorization:
 
  - Admin (99999): Can do anything, really
