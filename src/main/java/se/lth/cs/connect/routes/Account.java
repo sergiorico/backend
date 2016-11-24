@@ -30,9 +30,10 @@ import se.lth.cs.connect.modules.Mailman;
 public class Account extends BackendRouter {
     private String registerTemplate,
                    resetPasswordRequestTemplate,
-                   resetPasswordSuccessTemplate;
+                   resetPasswordSuccessTemplate,
+                   notifyAdminOnVerify;
 
-    private String hostname, frontend;
+    private String hostname, frontend, adminEmail;
 
     /**
      * Return an UTF-8, percent-encoded string. Used for base64-encoded tokens.
@@ -52,9 +53,11 @@ public class Account extends BackendRouter {
         registerTemplate = msg.get("pippo.register", "en");
         resetPasswordRequestTemplate = msg.get("pippo.passwordresetrequest", "en");
         resetPasswordSuccessTemplate = msg.get("pippo.passwordresetsuccess", "en");
+        notifyAdminOnVerify = msg.get("pippo.notifyadminonverify", "en");
 
         hostname = app.getPippoSettings().getString("hostname", "http://localhost:8080");
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
+        adminEmail = app.getPippoSettings().getString("administrator.email", "en");
     }
 
     private List<GrNode> queryCollections(IDBAccess access, String email, String rel) {
@@ -186,10 +189,9 @@ public class Account extends BackendRouter {
             if (email == null)
                 throw new RequestException("Invalid token: " + token);
             
-            if(!frontend.equals("http://localhost:8181")){ //Dont wan't to send mail to serpconnect@cs.lth.se when we are testing.
-            	app.getMailClient().
-    				sendEmail("serpconnect@cs.lth.se", "SERP connect email registration", "The following email has registered to SERP-connect:\n\n" + email);
-            }      
+            String message = notifyAdminOnVerify.replace("{email}", email);
+            app.getMailClient().
+    			sendEmail(adminEmail, "SERP connect email registration", message);  
 
             rc.resetSession();
             rc.setSession("email", email);
