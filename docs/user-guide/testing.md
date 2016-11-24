@@ -10,9 +10,9 @@ Connect relies on a number of test steps:
 In addition to the integration testing and coverage reporting done by circleci developers are also expected to test their changes locally. The maven commands are:
 
  - run unit tests only: `mvn test`
- - run unit tests and then integration tests: `mvn verify`
+ - clean `target/`, run unit tests and then integration tests: `mvn clean verify`
 
-During integration testing an included neo4j server will automatically be started. **An error will be thrown if a unit test case tries to access a route that queries the database.**
+During integration testing an included neo4j server will automatically be started. **An error will be thrown if a unit test case tries to access a route that queries the database.** The database is *not* ephemeral, but lives in the `target/` directory. Most tests will create stuff in the database and will run into problems if entries, collections or users already exists. This is why it is recommended to run `clean` before `verify`.
 
 Writing test cases
 ------------------
