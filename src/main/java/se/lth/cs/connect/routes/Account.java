@@ -30,9 +30,10 @@ import se.lth.cs.connect.modules.Mailman;
 public class Account extends BackendRouter {
     private String registerTemplate,
                    resetPasswordRequestTemplate,
-                   resetPasswordSuccessTemplate;
+                   resetPasswordSuccessTemplate,
+                   notifyAdminOnVerify;
 
-    private String hostname, frontend;
+    private String hostname, frontend, adminEmail;
 
     /**
      * Return an UTF-8, percent-encoded string. Used for base64-encoded tokens.
@@ -52,9 +53,11 @@ public class Account extends BackendRouter {
         registerTemplate = msg.get("pippo.register", "en");
         resetPasswordRequestTemplate = msg.get("pippo.passwordresetrequest", "en");
         resetPasswordSuccessTemplate = msg.get("pippo.passwordresetsuccess", "en");
+        notifyAdminOnVerify = msg.get("pippo.notifyadminonverify", "en");
 
         hostname = app.getPippoSettings().getString("hostname", "http://localhost:8080");
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
+        adminEmail = app.getPippoSettings().getString("administrator.email", "en");
     }
 
     private List<GrNode> queryCollections(IDBAccess access, String email, String rel) {
@@ -107,10 +110,10 @@ public class Account extends BackendRouter {
             String message = registerTemplate
                 .replace("{token}", token)
                 .replace("{hostname}", hostname);
-
+            
             app.getMailClient().
             	sendEmail(email, "SERP connect registration", message);
-            
+	            
             rc.resetSession();
             rc.setSession("email", email);
             rc.getResponse().ok();
@@ -133,6 +136,7 @@ public class Account extends BackendRouter {
 
                 app.getMailClient().
         			sendEmail(email, "Password reset request", message);
+                	
                 rc.getResponse().ok();
             }
         });
@@ -183,6 +187,10 @@ public class Account extends BackendRouter {
             String email = AccountSystem.verifyEmail(token);
             if (email == null)
                 throw new RequestException("Invalid token: " + token);
+            
+            String message = notifyAdminOnVerify.replace("{email}", email);
+            app.getMailClient().
+    			sendEmail(adminEmail, "SERP connect email registration", message);  
 
             rc.resetSession();
             rc.setSession("email", email);

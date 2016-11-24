@@ -5,7 +5,6 @@
 *.*~
 docsbin/
 venv/
-application.properties
 bin/
 .metadata/
 
