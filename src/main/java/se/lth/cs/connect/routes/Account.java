@@ -111,7 +111,6 @@ public class Account extends BackendRouter {
                 .replace("{token}", token)
                 .replace("{hostname}", hostname);
             
-            System.out.println(message); //REMOVE
             app.getMailClient().
             	sendEmail(email, "SERP connect registration", message);
 	            
