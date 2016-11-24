@@ -107,10 +107,11 @@ public class Account extends BackendRouter {
             String message = registerTemplate
                 .replace("{token}", token)
                 .replace("{hostname}", hostname);
-
+            
+            System.out.println(message); //REMOVE
             app.getMailClient().
             	sendEmail(email, "SERP connect registration", message);
-            
+	            
             rc.resetSession();
             rc.setSession("email", email);
             rc.getResponse().ok();
@@ -133,6 +134,7 @@ public class Account extends BackendRouter {
 
                 app.getMailClient().
         			sendEmail(email, "Password reset request", message);
+                	
                 rc.getResponse().ok();
             }
         });
@@ -183,6 +185,11 @@ public class Account extends BackendRouter {
             String email = AccountSystem.verifyEmail(token);
             if (email == null)
                 throw new RequestException("Invalid token: " + token);
+            
+            if(!frontend.equals("http://localhost:8181")){ //Dont wan't to send mail to serpconnect@cs.lth.se when we are testing.
+            	app.getMailClient().
+    				sendEmail("serpconnect@cs.lth.se", "SERP connect email registration", "The following email has registered to SERP-connect:\n\n" + email);
+            }      
 
             rc.resetSession();
             rc.setSession("email", email);
