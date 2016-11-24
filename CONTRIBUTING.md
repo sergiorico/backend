@@ -1,9 +1,6 @@
 Contributing
 ============
 
-This file is mirrored [here](https://raw.githubusercontent.com/emenlu/connect/master/CONTRIBUTING.md).
-
-
 Licensing
 ---------
 connect is licensed under the BSD 2-clause license.
@@ -52,3 +49,8 @@ Landing the PR
  - It is recommended (but not *required*) to rebase your commits into a clean flow (to simplify review)
  - Mention @emenlu when your PR is ready and she will assign someone to poke at it 
 
+Tips
+----
+ * Issues with `easy-pick` tags are recommended for new contributors
+
+Thanks for the interest, we hope to see you soon!
