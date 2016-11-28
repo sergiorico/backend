@@ -1,17 +1,12 @@
 # This is the list of people who contribute and
-# have contributed to the connect repository.
-#
-# This file lists people; not copyright holders.
+# have contributed to the connect project.
 #
 # Names should follow this format:
 #   Given Family <email addr used on commit>
 #
-# If a name is added to this file, consider adding
-# it to the AUTHORS file - either the name itself
-# or the organisation that employs the named.
-#
 # Keep this list sorted by given name.
 
+Alexander Cobleigh <angellus.falsus@gmail.com>
 Axel Smeets <murlocbrand@gmail.com>
 Emelie Engström <emelie.engstrom@cs.lth.se>
 Erik Andersson <eng10ea2@student.lu.se>
