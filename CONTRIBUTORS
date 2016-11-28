@@ -4,7 +4,7 @@
 # This file lists people; not copyright holders.
 #
 # Names should follow this format:
-#   Given Family <email addr used on github>
+#   Given Family <email addr used on commit>
 #
 # If a name is added to this file, consider adding
 # it to the AUTHORS file - either the name itself
@@ -13,5 +13,8 @@
 # Keep this list sorted by given name.
 
 Axel Smeets <murlocbrand@gmail.com>
+Emelie Engström <emelie.engstrom@cs.lth.se>
 Erik Andersson <eng10ea2@student.lu.se>
+Kai Petersen <kaipetersen79@gmail.com>
+Nauman Ali <nauman.ali@gmail.com>
 Tim Borglund <tim.borglund@gmail.com>
