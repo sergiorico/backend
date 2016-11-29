@@ -41,6 +41,7 @@ public class Connect extends Application {
 		useMailClient(new Mailman());
 
 		final String[] allowedOrigins = new String[] { "http://localhost:8181", "http://localhost:8080",
+				"https://localhost:8181", "https://localhost:8080",
 				"http://serpconnect.cs.lth.se", "http://api.serpconnect.cs.lth.se", "https://serpconnect.cs.lth.se",
 				"https://api.serpconnect.cs.lth.se" };
 
