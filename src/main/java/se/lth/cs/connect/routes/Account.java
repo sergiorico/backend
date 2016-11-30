@@ -2,7 +2,10 @@ package se.lth.cs.connect.routes;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import iot.jcypher.database.IDBAccess;
 // required for building queries and interpreting query results
@@ -12,7 +15,10 @@ import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.values.JcCollection;
 import iot.jcypher.query.values.JcNode;
+import iot.jcypher.query.values.JcRelation;
 import ro.pippo.core.Messages;
 import ro.pippo.core.PippoConstants;
 import ro.pippo.core.PippoSettings;
@@ -141,6 +147,56 @@ public class Account extends BackendRouter {
             }
         });
 
+        GET("/friends", (rc)->{
+        	final JcNode coll = new JcNode("coll");
+
+        	//find all collections that a user have
+        	String email = rc.getParameter("email").toString();
+        	List<GrNode> res = Database.query(rc.getLocal("db"), new IClause[]{
+        	            MATCH.node().label("user").property("email").value(email)
+        	                .relation().type("MEMBER_OF").node(coll).label("collection"),
+        	            RETURN.DISTINCT().value(coll)
+        	        }).resultOf(coll);
+
+        	Set<GrNode> total = new HashSet<GrNode>();
+        	
+        	JcNode u = new JcNode("u");
+        	boolean found;
+        	//loop through all those collections and add all members inside the collections
+        	for(int i=0; i<res.size(); i++){
+            	List<GrNode> res2 = Database.query(rc.getLocal("db"), new IClause[]{
+       	        	 MATCH.node(u).label("user")
+       	             .relation().type("MEMBER_OF")
+       	             .node(coll).label("collection"),
+       		         WHERE.valueOf(coll.id()).EQUALS(res.get(0).getId()),
+       		         RETURN.DISTINCT().value(u)
+       	        }).resultOf(u);
+            	
+            	found = false;
+             	for(int j=0; j<res2.size(); j++){
+                	Iterator<GrNode> it = total.iterator();
+                	while(it.hasNext()){
+                		if(it.next().getId()==res2.get(j).getId()){
+                			found=true;
+                			break;
+                		}
+                	}
+                	if(!found){
+                		total.add(res2.get(j));
+                	}
+             	}
+        	}
+
+        	Iterator<GrNode> it = total.iterator();
+        	String[] ret = new String[total.size()];
+        	int i=0;
+        	while(it.hasNext()){
+        		ret[i]=it.next().getProperty("email").toString().split("= ")[1];
+        		i++;
+        	}
+        	rc.json().send(ret);
+        });
+        
      // GET api.serp.se/v1/account/reset-password?token=igotmypermitrighthere HTTP/1.1
         GET("/reset-password", (rc) -> {
             String token = rc.getParameter("token").toString();
