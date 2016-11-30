@@ -147,6 +147,7 @@ public class Account extends BackendRouter {
             }
         });
 
+        // GET api.serp.se/v1/account/friends HTTP/1.1
         GET("/friends", (rc)->{
         	final JcNode coll = new JcNode("coll");
 

@@ -274,6 +274,13 @@ Check login status
    :statuscode 200: ok logged in
    :statuscode 401: no not logged in
 
+Get friends of a user
+~~~~~~~~~~~~~~~~~~~
+.. http:get:: /v1/account/friends
+
+	Needs an email as rc parameter
+	Returns a json array of all user emails that are related to the given email
+
 Get collections
 ~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/collections
