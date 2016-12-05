@@ -278,8 +278,14 @@ Get friends of a user
 ~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/friends
 
-	Needs an email as rc parameter
-	Returns a json array of all user emails that are related to the given email
+   :param email: entry's unique email
+   :type email: String
+   
+   .. sourcecode:: js
+	
+   	  ["turtle@rock.gov", "zebra@afri.ca"]
+   
+   :>json array emails: an array of emails related to the users email including the users email.
 
 Get collections
 ~~~~~~~~~~~~~~~~~~~

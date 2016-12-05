@@ -150,50 +150,20 @@ public class Account extends BackendRouter {
         // GET api.serp.se/v1/account/friends HTTP/1.1
         GET("/friends", (rc)->{
         	final JcNode coll = new JcNode("coll");
-
-        	//find all collections that a user have
+        	JcNode u = new JcNode("u");
+        	System.out.println("in friends");
+        	//find all emails of users in mutual collections
         	String email = rc.getParameter("email").toString();
         	List<GrNode> res = Database.query(rc.getLocal("db"), new IClause[]{
-        	            MATCH.node().label("user").property("email").value(email)
-        	                .relation().type("MEMBER_OF").node(coll).label("collection"),
-        	            RETURN.DISTINCT().value(coll)
-        	        }).resultOf(coll);
+    	            MATCH.node().label("user").property("email").value(email)
+    	                .relation().type("MEMBER_OF").node(coll).label("collection").
+    	                relation().type("MEMBER_OF").node(u).label("user"),
+    	            RETURN.DISTINCT().value(u)
+    	        }).resultOf(u);
 
-        	Set<GrNode> total = new HashSet<GrNode>();
-        	
-        	JcNode u = new JcNode("u");
-        	boolean found;
-        	//loop through all those collections and add all members inside the collections
+        	String[] ret=new String[res.size()];
         	for(int i=0; i<res.size(); i++){
-            	List<GrNode> res2 = Database.query(rc.getLocal("db"), new IClause[]{
-       	        	 MATCH.node(u).label("user")
-       	             .relation().type("MEMBER_OF")
-       	             .node(coll).label("collection"),
-       		         WHERE.valueOf(coll.id()).EQUALS(res.get(0).getId()),
-       		         RETURN.DISTINCT().value(u)
-       	        }).resultOf(u);
-            	
-            	found = false;
-             	for(int j=0; j<res2.size(); j++){
-                	Iterator<GrNode> it = total.iterator();
-                	while(it.hasNext()){
-                		if(it.next().getId()==res2.get(j).getId()){
-                			found=true;
-                			break;
-                		}
-                	}
-                	if(!found){
-                		total.add(res2.get(j));
-                	}
-             	}
-        	}
-
-        	Iterator<GrNode> it = total.iterator();
-        	String[] ret = new String[total.size()];
-        	int i=0;
-        	while(it.hasNext()){
-        		ret[i]=it.next().getProperty("email").toString().split("= ")[1];
-        		i++;
+        		ret[i]=res.get(i).getProperty("email").getValue().toString();
         	}
         	rc.json().send(ret);
         });
