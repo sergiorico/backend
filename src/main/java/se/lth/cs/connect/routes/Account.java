@@ -151,7 +151,6 @@ public class Account extends BackendRouter {
         GET("/friends", (rc)->{
         	final JcNode coll = new JcNode("coll");
         	JcNode u = new JcNode("u");
-        	System.out.println("in friends");
         	//find all emails of users in mutual collections
         	String email = rc.getParameter("email").toString();
         	List<GrNode> res = Database.query(rc.getLocal("db"), new IClause[]{
@@ -165,6 +164,7 @@ public class Account extends BackendRouter {
         	for(int i=0; i<res.size(); i++){
         		ret[i]=res.get(i).getProperty("email").getValue().toString();
         	}
+        	
         	rc.json().send(ret);
         });
         
