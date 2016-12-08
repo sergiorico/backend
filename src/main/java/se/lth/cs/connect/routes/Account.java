@@ -2,7 +2,10 @@ package se.lth.cs.connect.routes;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import iot.jcypher.database.IDBAccess;
 // required for building queries and interpreting query results
@@ -12,7 +15,10 @@ import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.values.JcCollection;
 import iot.jcypher.query.values.JcNode;
+import iot.jcypher.query.values.JcRelation;
 import ro.pippo.core.Messages;
 import ro.pippo.core.PippoConstants;
 import ro.pippo.core.PippoSettings;
@@ -141,6 +147,27 @@ public class Account extends BackendRouter {
             }
         });
 
+        // GET api.serp.se/v1/account/friends HTTP/1.1
+        GET("/friends", (rc)->{
+        	final JcNode coll = new JcNode("coll");
+        	JcNode u = new JcNode("u");
+        	//find all emails of users in mutual collections
+        	String email = rc.getParameter("email").toString();
+        	List<GrNode> res = Database.query(rc.getLocal("db"), new IClause[]{
+    	            MATCH.node().label("user").property("email").value(email)
+    	                .relation().type("MEMBER_OF").node(coll).label("collection").
+    	                relation().type("MEMBER_OF").node(u).label("user"),
+    	            RETURN.DISTINCT().value(u)
+    	        }).resultOf(u);
+
+        	String[] ret=new String[res.size()];
+        	for(int i=0; i<res.size(); i++){
+        		ret[i]=res.get(i).getProperty("email").getValue().toString();
+        	}
+        	
+        	rc.json().send(ret);
+        });
+        
      // GET api.serp.se/v1/account/reset-password?token=igotmypermitrighthere HTTP/1.1
         GET("/reset-password", (rc) -> {
             String token = rc.getParameter("token").toString();
