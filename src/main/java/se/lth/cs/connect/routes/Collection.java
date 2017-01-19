@@ -238,23 +238,26 @@ public class Collection extends BackendRouter {
         POST("/{id}/invite", (rc) -> {
             int id = rc.getParameter("id").toInt();
             List<String> emails = rc.getParameter("email").toList(String.class);
-
+            String inviter = rc.getParameter("inviterEmail").toString();
+                        
             for (String email : emails) {
                 JcNode user = new JcNode("user");
                 JcNode coll = new JcNode("coll");
 
-                
                 JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
-                        MATCH.node(user).label("user").property("email").value(email),
-                        RETURN.value(user)
+                    MATCH.node(user).label("user").property("email").value(email),
+                    RETURN.value(user)
                 });
+
                 boolean emptyUser = res.resultOf(user).isEmpty();
+
                 //create temporary unregistered user if non existent
-                if(emptyUser){
+                if (emptyUser) {
                 	AccountSystem.createAccount(email, "", TrustLevel.UNREGISTERED);
-                }else if(res.resultOf(user).get(0).getProperty("trust").getValue().equals(TrustLevel.UNREGISTERED)){
-                	emptyUser=true;
+                } else if(res.resultOf(user).get(0).getProperty("trust").getValue().equals(TrustLevel.UNREGISTERED)){
+                	emptyUser = true;
                 }
+
                 // Use MERGE so we don't end up with multiple invites per user
                 Database.query(rc.getLocal("db"), new IClause[]{
                     MATCH.node(user).label("user").property("email").value(email),
@@ -262,21 +265,28 @@ public class Collection extends BackendRouter {
                     WHERE.valueOf(coll.id()).EQUALS(id),
                     MERGE.node(user).relation().out().type("INVITE").node(coll)
                 });
-
-                
+ 
                //check if unregistered or empty user
-               if(emptyUser){
+               if (emptyUser) {
             	   app.getMailClient().
             	   		sendEmail(email, "SERP Connect - Collection Invite",
         	   				collectionInviteNewUserTemplate.
             			   		replace("{frontend}", frontend));
-               }
-               else{ 
+               } else { 
 	                app.getMailClient().
 	    				sendEmail(email, "SERP Connect - Collection Invite",
 	    						  collectionInviteTemplate.
 	    						  	  replace("{frontend}", frontend));
                }
+
+                JcNode inviterNode = new JcNode("user");
+                Database.query(rc.getLocal("db"), new IClause[]{
+                    MATCH.node(user).label("user").property("email").value(email),
+                    //MATCH.node(coll).label("collection"),
+                    //WHERE.valueOf(coll.id()).EQUALS(id),
+                    MATCH.node(inviterNode).label("user").property("email").value(inviter),
+                    CREATE.node(user).relation().out().type("INVITER").node(inviterNode)
+                });
             }
 
             rc.getResponse().ok();
