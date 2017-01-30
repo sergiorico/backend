@@ -1,11 +1,10 @@
-Getting Started
-===============
+# Getting Started
 This is the main title.
 
-Workflow
---------
+## Workflow
 This is a level 2 heading.
 
-Eclipse
-~~~~~~~
+### Eclipse
 This is  a level 3 heading.
+
+![img](../overview.svg)
