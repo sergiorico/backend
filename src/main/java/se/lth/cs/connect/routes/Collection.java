@@ -38,7 +38,8 @@ public class Collection extends BackendRouter {
 
     private String collectionInviteTemplate;
     private String collectionInviteNewUserTemplate;
-    private String frontend;
+	private String collectionInviteActionTemplate;
+	private String frontend;
 
     public Collection(Connect app) {
         super(app);
@@ -46,6 +47,7 @@ public class Collection extends BackendRouter {
         Messages msg = app.getMessages();
         collectionInviteTemplate = msg.get("pippo.collectioninvite", "en");
         collectionInviteNewUserTemplate = msg.get("pippo.collectioninvitenewuser", "en");
+		collectionInviteActionTemplate = msg.get("pippo.collectioninviteaction", "en");
 
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
     }
@@ -186,6 +188,31 @@ public class Collection extends BackendRouter {
             rc.next();
         });
 
+        POST("/{id}/reject", (rc) -> {
+			String email = rc.getSession("email");
+			int id = rc.getParameter("id").toInt();
+			JcNode user = new JcNode("user");
+			JcNode coll = new JcNode("coll");
+			JcRelation rel = new JcRelation("rel");
+
+			handleInvitation(rc, "rejected");
+			
+			// Delete invitation
+			JcQueryResult res = Database.query(Database.access(), new IClause[] {
+                MATCH.node(user).label("user").property("email").value(email)
+                    .relation(rel).type("INVITE")
+                    .node(coll).label("collection"),
+                WHERE.valueOf(coll.id()).EQUALS(id),
+                DO.DELETE(rel),
+                NATIVE.cypher("RETURN TRUE AS ok") 
+            });
+
+			if (res.resultOf(new JcBoolean("ok")).size() > 0)
+				rc.getResponse().ok();
+			else
+				throw new RequestException("Not invited to that collection.");
+		});
+
         // POST api.serpconnect.cs.lth.se/{id}/accept HTTP/1.1
         POST("/{id}/accept", (rc) -> {
             String email = rc.getSession("email");
@@ -194,6 +221,8 @@ public class Collection extends BackendRouter {
             JcNode user = new JcNode("user");
             JcNode coll = new JcNode("coll");
             JcRelation rel = new JcRelation("rel");
+
+            handleInvitation(rc, "accepted");
 
             // Replace an INVITE type relation with a MEMBER_OF relation
             JcQueryResult res = Database.query(Database.access(), new IClause[]{
@@ -238,7 +267,7 @@ public class Collection extends BackendRouter {
         POST("/{id}/invite", (rc) -> {
             int id = rc.getParameter("id").toInt();
             List<String> emails = rc.getParameter("email").toList(String.class);
-            String inviter = rc.getParameter("inviterEmail").toString();
+            String inviter = rc.getSession("email");
                         
             for (String email : emails) {
                 JcNode user = new JcNode("user");
@@ -259,34 +288,28 @@ public class Collection extends BackendRouter {
                 }
 
                 // Use MERGE so we don't end up with multiple invites per user
-                Database.query(rc.getLocal("db"), new IClause[]{
+				Database.query(rc.getLocal("db"), new IClause[] { 
                     MATCH.node(user).label("user").property("email").value(email),
-                    MATCH.node(coll).label("collection"),
+                    MATCH.node(coll).label("collection"), 
                     WHERE.valueOf(coll.id()).EQUALS(id),
                     MERGE.node(user).relation().out().type("INVITE").node(coll)
                 });
- 
-               //check if unregistered or empty user
-               if (emptyUser) {
-            	   app.getMailClient().
-            	   		sendEmail(email, "SERP Connect - Collection Invite",
-        	   				collectionInviteNewUserTemplate.
-            			   		replace("{frontend}", frontend));
-               } else { 
-	                app.getMailClient().
-	    				sendEmail(email, "SERP Connect - Collection Invite",
-	    						  collectionInviteTemplate.
-	    						  	  replace("{frontend}", frontend));
-               }
 
-                JcNode inviterNode = new JcNode("user");
-                Database.query(rc.getLocal("db"), new IClause[]{
+				//keep track of who invited the user and to which collection
+				JcNode inviterNode = new JcNode("inviter");
+				Database.query(rc.getLocal("db"), new IClause[] { 
                     MATCH.node(user).label("user").property("email").value(email),
-                    //MATCH.node(coll).label("collection"),
-                    //WHERE.valueOf(coll.id()).EQUALS(id),
                     MATCH.node(inviterNode).label("user").property("email").value(inviter),
-                    CREATE.node(user).relation().out().type("INVITER").node(inviterNode)
+                    MERGE.node(user).relation().out().type("INVITER")
+                        .property("parentnode").value(id).node(inviterNode) 
                 });
+
+                String template = emptyUser ? collectionInviteNewUserTemplate 
+                                            : collectionInviteTemplate;
+                template = template.replace("{frontend}", frontend);
+
+                app.getMailClient().sendEmail(email, "SERP Connect - Collection Invite", template);
+            
             }
 
             rc.getResponse().ok();
@@ -410,4 +433,45 @@ public class Collection extends BackendRouter {
                 DO.DETACH_DELETE(entry)
             });
     }
+
+	//will reply an email to all users that invited this user which informs them
+	//of what action was taken.
+	private void handleInvitation(RouteContext rc, String action) {
+		final String email = rc.getSession("email");
+		final int id = rc.getParameter("id").toInt();
+		
+		// 1 invitee -- Many inviters: Must destroy all relations
+        // TODO: Only return data we want (emails)
+		final JcNode user = new JcNode("user");
+		final JcNode inviter = new JcNode("inviter");
+		final JcRelation rel = new JcRelation("rel");
+		JcQueryResult inviters = Database.query(rc.getLocal("db"), new IClause[] {
+            MATCH.node(user).label("user").property("email").value(email)
+                .relation(rel).type("INVITER").node(inviter),
+            WHERE.valueOf(rel.property("parentnode").toInt()).EQUALS(id),
+            DO.DELETE(rel), 
+            RETURN.value(inviter)
+		});
+
+		// Get the name of the collection.
+        // TODO: Only return data we want (collection name)
+		final JcNode coll = new JcNode("coll2");
+		final JcQueryResult collQuery = Database.query(Database.access(), new IClause[] { 
+            MATCH.node(coll).label("collection"),
+			WHERE.valueOf(coll.id()).EQUALS(id), 
+            RETURN.value(coll)
+        });
+
+        final Graph.Collection collection = new Graph.Collection(collQuery.resultOf(coll).get(0));
+        final String template = collectionInviteActionTemplate
+            .replace("{user}", email)
+            .replace("{action}", action)
+            .replace("{collection}", collection.name);
+
+		// Maybe only send email to person whose invite user accepted?
+        final Graph.User[] invitors = Graph.User.fromList(inviters.resultOf(inviter));
+        for (Graph.User invitor : invitors) {
+            app.getMailClient().sendEmail(invitor.email, "SERP Connect - Collection Invite Response", template);
+        }
+	}
 }
