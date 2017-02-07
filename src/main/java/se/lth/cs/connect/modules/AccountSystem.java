@@ -6,6 +6,7 @@ import java.util.List;
 
 import java.security.SecureRandom;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 import com.lambdaworks.crypto.SCryptUtil;
@@ -134,7 +135,7 @@ public class AccountSystem {
     	JcNode coll = new JcNode("c");
     	JcNode user = new JcNode("user");
     	
-    	ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of("Europe/Stockholm"));
+    	ZonedDateTime currentTime = ZonedDateTime.now(ZoneOffset.UTC);
     	
         // "Email already exists"
         if (acc != null){
