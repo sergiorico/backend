@@ -26,6 +26,8 @@ import ro.pippo.core.route.RouteContext;
 import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
+import se.lth.cs.connect.TrustLevel;
+import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 
 /**
@@ -35,6 +37,7 @@ public class Collection extends BackendRouter {
     public String getPrefix() { return "/v1/collection"; }
 
     private String collectionInviteTemplate;
+    private String collectionInviteNewUserTemplate;
     private String frontend;
 
     public Collection(Connect app) {
@@ -42,6 +45,7 @@ public class Collection extends BackendRouter {
 
         Messages msg = app.getMessages();
         collectionInviteTemplate = msg.get("pippo.collectioninvite", "en");
+        collectionInviteNewUserTemplate = msg.get("pippo.collectioninvitenewuser", "en");
 
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
     }
@@ -239,18 +243,40 @@ public class Collection extends BackendRouter {
                 JcNode user = new JcNode("user");
                 JcNode coll = new JcNode("coll");
 
-                // Use MERGE so we don't end up with multiple invites per user
+                
                 JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                        MATCH.node(user).label("user").property("email").value(email),
+                        RETURN.value(user)
+                });
+                boolean emptyUser = res.resultOf(user).isEmpty();
+                //create temporary unregistered user if non existent
+                if(emptyUser){
+                	AccountSystem.createAccount(email, "", TrustLevel.UNREGISTERED);
+                }else if(res.resultOf(user).get(0).getProperty("trust").getValue().equals(TrustLevel.UNREGISTERED)){
+                	emptyUser=true;
+                }
+                // Use MERGE so we don't end up with multiple invites per user
+                Database.query(rc.getLocal("db"), new IClause[]{
                     MATCH.node(user).label("user").property("email").value(email),
                     MATCH.node(coll).label("collection"),
                     WHERE.valueOf(coll.id()).EQUALS(id),
                     MERGE.node(user).relation().out().type("INVITE").node(coll)
                 });
 
-                app.getMailClient().
-    				sendEmail(email, "SERP Connect - Collection Invite",
-    						  collectionInviteTemplate.
-    						  	  replace("{frontend}", frontend));
+                
+               //check if unregistered or empty user
+               if(emptyUser){
+            	   app.getMailClient().
+            	   		sendEmail(email, "SERP Connect - Collection Invite",
+        	   				collectionInviteNewUserTemplate.
+            			   		replace("{frontend}", frontend));
+               }
+               else{ 
+	                app.getMailClient().
+	    				sendEmail(email, "SERP Connect - Collection Invite",
+	    						  collectionInviteTemplate.
+	    						  	  replace("{frontend}", frontend));
+               }
             }
 
             rc.getResponse().ok();

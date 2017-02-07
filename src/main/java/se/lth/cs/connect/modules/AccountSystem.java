@@ -126,15 +126,36 @@ public class AccountSystem {
      */
     public static synchronized boolean createAccount(String email,
                                         String password, int trust) {
-        // "Email is already registered"
-        if (findByEmail(email) != null)
-            return false;
+    	Account acc = findByEmail(email);
+    	
+    	JcNode coll = new JcNode("c");
+    	JcNode user = new JcNode("user");
+    	
+        // "Email already exists"
+        if (acc != null){
+        	//email is already registered
+        	if(acc.trust!=TrustLevel.UNREGISTERED)
+        		return false;
+        	
+        	//email isn't registered, merge existing mail with the new registration info 
+        	acc.password =  SCryptUtil.scrypt(password, SCRYPT_N, SCRYPT_R, SCRYPT_P);
+        	
+        	Database.query(Database.access(), new IClause[]{
+				MATCH.node(user).label("user")
+					.property("email").value(email),
+					DO.SET(user.property("trust")).to(trust),
+					DO.SET(user.property("password")).to(acc.password),
+					DO.REMOVE(user.property("date"))
+			});
+        	return true;
+        }
+            
         // Unless synchronized, email may or may not longer be unique
 
-        Account acc = new Account(email,
+        acc = new Account(email,
             SCryptUtil.scrypt(password, SCRYPT_N, SCRYPT_R, SCRYPT_P), trust);
 
-        JcNode coll = new JcNode("c");
+        
         Database.query(Database.access(), new IClause[]{
             CREATE.node(coll).label("collection")
                 .property("name").value("default"),
@@ -142,11 +163,20 @@ public class AccountSystem {
                 .property("email").value(email)
                 .property("password").value(acc.password)
                 .property("trust").value(trust)
+                .property("date").value(System.currentTimeMillis())
                 .property("default").value(coll.id())
                 .relation().out().type("MEMBER_OF")
                 .node(coll)
+  
+                
         });
-
+        //remove date property from all users that have different trustlevel than unregistered
+        Database.query(Database.access(), new IClause[]{
+                MATCH.node(user).property("email").value(email),
+                   WHERE.valueOf(user.property("trust")).NOT_EQUALS(TrustLevel.UNREGISTERED),
+                   DO.REMOVE(user.property("date"))
+        		
+        });
         return true;
     }
 
