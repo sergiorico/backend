@@ -156,7 +156,6 @@ public class AccountSystem {
         }
             
         // Unless synchronized, email may or may not longer be unique
-
         acc = new Account(email,
             SCryptUtil.scrypt(password, SCRYPT_N, SCRYPT_R, SCRYPT_P), trust);
 
@@ -175,13 +174,6 @@ public class AccountSystem {
   
                 
         });
-        //remove date property from all users that have different trustlevel than unregistered
-//        Database.query(Database.access(), new IClause[]{
-//                MATCH.node(user).property("email").value(email),
-//                   WHERE.valueOf(user.property("trust")).NOT_EQUALS(TrustLevel.UNREGISTERED),
-//                   DO.REMOVE(user.property("date"))
-//        		
-//        });
         return true;
     }
 
