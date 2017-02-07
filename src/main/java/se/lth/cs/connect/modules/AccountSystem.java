@@ -5,6 +5,9 @@ import se.lth.cs.connect.TrustLevel;
 import java.util.List;
 
 import java.security.SecureRandom;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
 import com.lambdaworks.crypto.SCryptUtil;
 
 import iot.jcypher.graph.GrNode;
@@ -131,6 +134,8 @@ public class AccountSystem {
     	JcNode coll = new JcNode("c");
     	JcNode user = new JcNode("user");
     	
+    	ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of("Europe/Stockholm"));
+    	
         // "Email already exists"
         if (acc != null){
         	//email is already registered
@@ -145,7 +150,7 @@ public class AccountSystem {
 					.property("email").value(email),
 					DO.SET(user.property("trust")).to(trust),
 					DO.SET(user.property("password")).to(acc.password),
-					DO.REMOVE(user.property("date"))
+					DO.SET(user.property("signupdate")).to(currentTime)
 			});
         	return true;
         }
@@ -163,7 +168,7 @@ public class AccountSystem {
                 .property("email").value(email)
                 .property("password").value(acc.password)
                 .property("trust").value(trust)
-                .property("date").value(System.currentTimeMillis())
+                .property("signupdate").value(currentTime)
                 .property("default").value(coll.id())
                 .relation().out().type("MEMBER_OF")
                 .node(coll)
@@ -171,12 +176,12 @@ public class AccountSystem {
                 
         });
         //remove date property from all users that have different trustlevel than unregistered
-        Database.query(Database.access(), new IClause[]{
-                MATCH.node(user).property("email").value(email),
-                   WHERE.valueOf(user.property("trust")).NOT_EQUALS(TrustLevel.UNREGISTERED),
-                   DO.REMOVE(user.property("date"))
-        		
-        });
+//        Database.query(Database.access(), new IClause[]{
+//                MATCH.node(user).property("email").value(email),
+//                   WHERE.valueOf(user.property("trust")).NOT_EQUALS(TrustLevel.UNREGISTERED),
+//                   DO.REMOVE(user.property("date"))
+//        		
+//        });
         return true;
     }
 
