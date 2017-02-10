@@ -1,0 +1,104 @@
+digraph G {
+    label = "Connect Backend Overview\nupdated 2017-01-31"
+    compound = true;
+
+    graph [ fontname="monospace" fontsize=12 ]
+    edge [ fontsize=10 ]
+    node [
+        shape = "record"
+        fontname="monospace"
+        fontsize=10
+    ]
+
+    subgraph clusterPippo {
+        label = "Pippo"
+        PippoStuff [ label = "{Package}"]
+    }
+
+    Connect [
+        label = "{Connect|+ main()\l}"
+    ]
+    Connect -> PippoStuff [lhead=clusterPippo,dir=none]
+
+    TrustLevel [
+        label = <{TrustLevel|<u>+ ADMIN</u><br align='left'/><u>+ VERIFIED</u><br align='left'/><u>+ USER</u><br align='left'/><u>+ REGISTERED</u><br align='left'/><u>+ UNREGISTERED</u>}>
+    ]
+
+    GraphClass [
+        label = "{Graph|+ Graph.User\l+ Graph.Entry\l+ Graph.Collection\l}"
+    ]
+
+    DatabaseException [
+        label = "{DatabaseException}"
+    ]
+    RequestException [
+        label = "{RequestException}"
+    ]
+
+    subgraph clusterModules {
+        label = "Modules"
+
+        AccountSystem [
+            label = "{AccountSystem|+ register()\l+ reset_password()\l+ delete()\l}"
+        ]
+
+        Database [
+            label = "{Database|+ access()\l+ query()\l}"
+        ]
+
+        MailClient [
+            label = <{MailClient|<i>+ sendMail()</i><br/>}>
+        ]
+
+        Mailman [
+            label = "{Mailman\l}"
+        ]
+    }
+
+    edge [ arrowhead = "empty" ]
+    Mailman -> MailClient
+    edge [ arrowhead = "none" ]
+    AccountSystem -> Database
+    Database -> DatabaseException
+
+    // prefix with cluster to draw label and border
+    subgraph clusterEndpoints {
+        label = "Routes"
+
+        BackendRouter [
+            label = "{BackendRouter\l}"
+        ]
+
+        Account [
+            label = "{Account|root = /account\l}"
+        ]
+
+        Collection [
+            label = "{Collection|root = /collection\l}"
+        ]
+
+        Entry [
+            label = "{Entry|root = /entry\l}"
+        ]
+
+        Admin [
+            label = "{Admin|root = /admin\l}"
+        ]
+
+    }
+    edge [ arrowhead="empty" ]
+    Account -> BackendRouter
+    Collection -> BackendRouter
+    Entry -> BackendRouter
+    Admin -> BackendRouter
+
+    edge [ arrowhead="none" ]
+    BackendRouter -> Database [lhead=clusterModules,ltail=clusterEndpoints]
+    BackendRouter -> RequestException [ltail=clusterEndpoints]
+    BackendRouter -> GraphClass [ltail=clusterEndpoints]
+    BackendRouter -> TrustLevel [ltail=clusterEndpoints]
+    BackendRouter -> PippoStuff [lhead=clusterPippo, ltail=clusterEndpoints]
+
+    Connect -> BackendRouter [lhead=clusterEndpoints, xlabel="register\nroutes"]
+
+}

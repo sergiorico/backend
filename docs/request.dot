@@ -1,0 +1,21 @@
+digraph A {
+    label = "Request flow"
+    edge [ fontsize=10, fontname="monospace" ]
+
+    Client [ label = "Client" ]
+    Server [ label = "nginx" ]
+    Pippo [ label = "pippo" ]
+    Account [ label = "/account" ]
+    AccountLogin [ label = "/login" ]
+    AccountSystem [ label = "AccountSystem" ]
+    Database [ label = "database" ]
+
+    Pippo -> Account [label=" routing"]
+    Account -> AccountLogin [label = " routing" ]
+    AccountLogin -> AccountSystem [ label = " auth(user, passw)", dir=both ]
+    AccountLogin -> Pippo [ label = " 200 OK" ]
+    Server -> Pippo [dir=both, label = " Proxy-Forward"]
+    AccountSystem -> Database [ label = "match $user\nwith $password\nand return true", dir=both ]
+    Client -> Server [dir=both, label = " POST /account/login"]
+
+}
