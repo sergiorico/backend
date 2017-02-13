@@ -36,18 +36,18 @@ import se.lth.cs.connect.modules.Database;
 public class Collection extends BackendRouter {
     public String getPrefix() { return "/v1/collection"; }
 
-    private String collectionInviteTemplate;
-    private String collectionInviteNewUserTemplate;
-	private String collectionInviteActionTemplate;
+    private String inviteTemplate;
+    private String inviteNewUserTemplate;
+	private String inviteActionTemplate;
 	private String frontend;
 
     public Collection(Connect app) {
         super(app);
 
         Messages msg = app.getMessages();
-        collectionInviteTemplate = msg.get("pippo.collectioninvite", "en");
-        collectionInviteNewUserTemplate = msg.get("pippo.collectioninvitenewuser", "en");
-		collectionInviteActionTemplate = msg.get("pippo.collectioninviteaction", "en");
+        inviteTemplate = msg.get("pippo.collectioninvite", "en");
+        inviteNewUserTemplate = msg.get("pippo.collectioninvitenewuser", "en");
+		inviteActionTemplate = msg.get("pippo.collectioninviteaction", "en");
 
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
     }
@@ -288,24 +288,19 @@ public class Collection extends BackendRouter {
                 }
 
                 // Use MERGE so we don't end up with multiple invites per user
-				Database.query(rc.getLocal("db"), new IClause[] { 
+				// keep track of who invited the user and to which collection
+                Database.query(rc.getLocal("db"), new IClause[] { 
                     MATCH.node(user).label("user").property("email").value(email),
                     MATCH.node(coll).label("collection"), 
                     WHERE.valueOf(coll.id()).EQUALS(id),
-                    MERGE.node(user).relation().out().type("INVITE").node(coll)
-                });
-
-				//keep track of who invited the user and to which collection
-				JcNode inviterNode = new JcNode("inviter");
-				Database.query(rc.getLocal("db"), new IClause[] { 
-                    MATCH.node(user).label("user").property("email").value(email),
                     MATCH.node(inviterNode).label("user").property("email").value(inviter),
+                    MERGE.node(user).relation().out().type("INVITE").node(coll),
                     MERGE.node(user).relation().out().type("INVITER")
                         .property("parentnode").value(id).node(inviterNode) 
                 });
 
-                String template = emptyUser ? collectionInviteNewUserTemplate 
-                                            : collectionInviteTemplate;
+                String template = emptyUser ? inviteNewUserTemplate 
+                                            : inviteTemplate;
                 template = template.replace("{frontend}", frontend);
 
                 app.getMailClient().sendEmail(email, "SERP Connect - Collection Invite", template);
@@ -463,7 +458,7 @@ public class Collection extends BackendRouter {
         });
 
         final Graph.Collection collection = new Graph.Collection(collQuery.resultOf(coll).get(0));
-        final String template = collectionInviteActionTemplate
+        final String template = inviteActionTemplate
             .replace("{user}", email)
             .replace("{action}", action)
             .replace("{collection}", collection.name);
