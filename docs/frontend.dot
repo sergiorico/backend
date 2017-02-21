@@ -1,0 +1,71 @@
+digraph Frontend {
+    label = "Connect Frontend Overview\nupdated 2017-02-21"
+    compound = true;
+
+    graph [ fontname="monospace" fontsize=12 ]
+    edge [ fontsize=10 ]
+    node [
+        shape = "record"
+        fontname="monospace"
+        fontsize=10
+    ]
+
+    subgraph clusterJs {
+        label = "Script\nsrc/js"
+
+        API [ label = "{api.js}" ]
+        APIDev [ label = "{api-dev.js}" ]
+
+        PerViewScript [ label = "{View Specific Scripts}" ]
+    }
+
+    subgraph clusterViews {
+        label = "Views\nsrc/views"
+
+        BasePage [ label = "{base|base.jade\l}" ]
+        HomePage [ label = "{/|index.jade\l}" ]
+        SearchPage [ label = "{/search|search.jade\l}" ]
+        SubmitPage [ label = "{/submit|submit.jade\l}" ]
+        AboutPage [ label = "{/about|about.jade\l}" ]
+        ProfilePage [ label = "{/profile|profile.jade\l}" ]
+        CollectionPage [ label = "{/collection|collection.jade\l}" ]
+        ExplorePage [ label = "{/explore|explore.jade\l}" ]
+        LoginPage [ label = "{/login|login.jade\l}" ]
+        AdminPage [ label = "{/admin|admin.jade\l}" ]
+    }
+    HomePage->BasePage
+    SearchPage->BasePage
+    SubmitPage->BasePage
+    AboutPage->BasePage
+    ProfilePage->BasePage
+    CollectionPage->BasePage
+    ExplorePage->BasePage
+    LoginPage->BasePage
+    AdminPage->BasePage
+
+    subgraph clusterCss {
+        label = "CSS"
+
+        AllCSS [ label = "{all.css}" ]
+    }
+    subgraph clusterWorkingfiles {
+        label = "LESS\nsrc/less"
+        Workingfiles [ label = "{workingfiles}" ]
+        AllLess [ label = "{all.less}" ]
+        AllLess->Workingfiles [ label="includes\n  everything" ]
+    }
+    AllCSS->AllLess [lhead=clusterWorkingfiles]
+    
+    JQUERY [ label = "{jquery.min.js|v 1.8}" ]
+
+    BasePage->AllCSS  [lhead=clusterCss label="one css\nto rule\nthem all"]
+    BasePage->API
+    BasePage->APIDev [ style="dashed" label="dev\nmode" ]
+    BasePage->JQUERY
+    BasePage->PerViewScript [ltail=clusterViews]
+
+    node [ shape = "house" ]
+    Backend [ label = "BACKEND" ]
+    API->Backend
+    Backend->API
+}
