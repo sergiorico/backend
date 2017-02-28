@@ -3,6 +3,7 @@ package se.lth.cs.connect;
 import se.lth.cs.connect.routes.Account;
 import se.lth.cs.connect.routes.Admin;
 import se.lth.cs.connect.routes.Entry;
+import utils.CleanupUsers;
 import se.lth.cs.connect.routes.Collection;
 
 import se.lth.cs.connect.modules.Database;
@@ -112,6 +113,9 @@ public class Connect extends Application {
 
 		Pippo pippo = new Pippo(new Connect());
 		pippo.start();
+		
+		CleanupUsers cl = new CleanupUsers();
+		cl.beepForAnHour();
 	}
 
 }
