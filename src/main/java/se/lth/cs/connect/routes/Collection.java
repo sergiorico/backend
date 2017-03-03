@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import iot.jcypher.database.IDBAccess;
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
@@ -15,11 +16,13 @@ import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.factories.clause.WITH;
 import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.values.JcBoolean;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
+import iot.jcypher.query.values.JcString;
 import ro.pippo.core.Messages;
 import ro.pippo.core.PippoSettings;
 import ro.pippo.core.route.RouteContext;
@@ -38,7 +41,7 @@ public class Collection extends BackendRouter {
 
     private String inviteTemplate;
     private String inviteNewUserTemplate;
-	private String inviteActionTemplate;
+	private static String inviteActionTemplate;
 	private String frontend;
 
     public Collection(Connect app) {
@@ -198,7 +201,7 @@ public class Collection extends BackendRouter {
 			handleInvitation(rc, "rejected");
 			
 			// Delete invitation
-			JcQueryResult res = Database.query(Database.access(), new IClause[] {
+			JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[] {
                 MATCH.node(user).label("user").property("email").value(email)
                     .relation(rel).type("INVITE")
                     .node(coll).label("collection"),
@@ -222,10 +225,10 @@ public class Collection extends BackendRouter {
             JcNode coll = new JcNode("coll");
             JcRelation rel = new JcRelation("rel");
 
-            handleInvitation(rc, "accepted");
+            handleInvitation(rc,"accepted");
 
             // Replace an INVITE type relation with a MEMBER_OF relation
-            JcQueryResult res = Database.query(Database.access(), new IClause[]{
+            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node(user).label("user").property("email").value(email)
                     .relation(rel).type("INVITE")
                     .node(coll).label("collection"),
@@ -430,44 +433,49 @@ public class Collection extends BackendRouter {
             });
     }
 
-	//will reply an email to all users that invited this user which informs them
-	//of what action was taken.
-	private void handleInvitation(RouteContext rc, String action) {
-		final String email = rc.getSession("email");
+    //Calls static handleInvitation. Exists to make the code cleaner for functions in this class.
+    private void handleInvitation(RouteContext rc, String action){
+    	final String email = rc.getSession("email");
 		final int id = rc.getParameter("id").toInt();
 		
+		handleInvitation(rc.getLocal("db"),email,id,action,app);
+    }
+    
+	//will reply an email to all users that invited this user which informs them
+	//of what action was taken.
+	public static void handleInvitation(IDBAccess db, String email, int id, String action, Connect app) {
 		// 1 invitee -- Many inviters: Must destroy all relations
-        // TODO: Only return data we want (emails)
 		final JcNode user = new JcNode("user");
 		final JcNode inviter = new JcNode("inviter");
 		final JcRelation rel = new JcRelation("rel");
-		JcQueryResult inviters = Database.query(rc.getLocal("db"), new IClause[] {
+		final JcString em = new JcString("em");
+		final JcString collName = new JcString("collName");
+		final JcNode coll = new JcNode("coll2");
+		
+		JcQueryResult inviters = Database.query(db, new IClause[] {
             MATCH.node(user).label("user").property("email").value(email)
                 .relation(rel).type("INVITER").node(inviter),
             WHERE.valueOf(rel.property("parentnode").toInt()).EQUALS(id),
             DO.DELETE(rel), 
-            RETURN.value(inviter)
+            RETURN.value(inviter.property("email")).AS(em)
 		});
-
+		
 		// Get the name of the collection.
-        // TODO: Only return data we want (collection name)
-		final JcNode coll = new JcNode("coll2");
-		final JcQueryResult collQuery = Database.query(Database.access(), new IClause[] { 
+		final JcQueryResult collQuery = Database.query(db, new IClause[] { 
             MATCH.node(coll).label("collection"),
 			WHERE.valueOf(coll.id()).EQUALS(id), 
-            RETURN.value(coll)
+            RETURN.value(coll.property("name")).AS(collName)
         });
 
-        final Graph.Collection collection = new Graph.Collection(collQuery.resultOf(coll).get(0));
         final String template = inviteActionTemplate
             .replace("{user}", email)
             .replace("{action}", action)
-            .replace("{collection}", collection.name);
+            .replace("{collection}", collQuery.resultOf(collName).get(0));
 
 		// Maybe only send email to person whose invite user accepted?
-        final Graph.User[] invitors = Graph.User.fromList(inviters.resultOf(inviter));
-        for (Graph.User invitor : invitors) {
-            app.getMailClient().sendEmail(invitor.email, "SERP Connect - Collection Invite Response", template);
+        final List<String> invitors = inviters.resultOf(em);
+        for (String invitor : invitors) {
+            app.getMailClient().sendEmail(invitor, "SERP Connect - Collection Invite Response", template);
         }
 	}
 }

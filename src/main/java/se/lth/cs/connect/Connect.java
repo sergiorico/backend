@@ -111,11 +111,12 @@ public class Connect extends Application {
 		// System.setProperty("pippo.mode", "prod");
 		// System.setProperty("pippo.mode", "test");
 
-		Pippo pippo = new Pippo(new Connect());
+		Connect conn = new Connect();
+		Pippo pippo = new Pippo(conn);
 		pippo.start();
 		
-		CleanupUsers cl = new CleanupUsers();
-		cl.beepForAnHour();
+		CleanupUsers cl = new CleanupUsers(conn);
+		cl.everyTwelveHours();
 	}
 
 }
