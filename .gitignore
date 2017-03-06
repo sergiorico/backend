@@ -3,6 +3,7 @@
 .settings
 .project
 *.*~
+*~
 docsbin/
 venv/
 bin/
