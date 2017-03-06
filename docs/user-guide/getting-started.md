@@ -2,8 +2,8 @@ Getting Started
 ===============
 This is the main title.
 
+## Backend
 
-## Overview
 Here is an overview of the different components that make up the backend. Each box corresponds to a java package with a similar name.
 
 ![img](../images/overview.svg)
@@ -18,9 +18,12 @@ The design is very simple:
  - The two exceptions (`DatabaseException.java` and `RequestException.java`) are thrown by handlers and handled by a function in `Connect.java`, like a bubble-style event.
  - Database access is only done through the `Database.java` class, it is also responsible for parsing any database errors and throwing a `DatabaseException` if needed. 
 
-## Workflow
+### Workflow
 To be written.
 
 ### Eclipse
 It is possible to use eclipse. We recommend to use a maven plugin to facilitate running the server.
 
+## Frontend
+
+![img](../images/frontend.svg)
