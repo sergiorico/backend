@@ -25,3 +25,4 @@ inner and outer workings of the SERP Connect `backend`_ and `frontend`_.
    internals/trust
 
    frontend/import
+   frontend/invites

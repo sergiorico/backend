@@ -30,6 +30,7 @@ public class Graph {
         public String email;
         public int defaultCollection;
         public String trust;
+        // public String signUpDate; // signupdate
         // no password for obvious reasons
 
         public User(GrNode base) {
