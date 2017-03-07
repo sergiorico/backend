@@ -18,7 +18,7 @@ the users pending invitations page.
 This is achieved by creating a temporary user with the email-address and with trust level
 unregistered. This temporary user has the pending invite linked to its account. If the user ever registers with that email 
 the users account credits will be merged with the temporary account. A periodic thread will run every 12 hours and clean up
-unregistered users which are older than one week old to avoid over flooding the database.
+unregistered users which are older than one week old to avoid flooding the database (`CleanupUsers.java`).
 
 Invite responses
 ----------------
