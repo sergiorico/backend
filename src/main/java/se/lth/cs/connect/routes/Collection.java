@@ -69,11 +69,12 @@ public class Collection extends BackendRouter {
             JcNode usr = new JcNode("u");
             JcNumber id = new JcNumber("x");
 
+            //usr-(member_of)->coll-(owner)->user
             JcQueryResult res = Database.query(Database.access(), new IClause[]{
                 MATCH.node(usr).label("user").property("email").value(email),
                 CREATE.node(usr).relation().type("MEMBER_OF").out()
                     .node(coll).label("collection")
-                    .property("name").value(name),
+                    .property("name").value(name).relation().type("OWNER").out().node(usr),
                 RETURN.value(coll.id()).AS(id)
             });
 
@@ -416,6 +417,29 @@ public class Collection extends BackendRouter {
             rc.status(200).json().send(members);
         });
 
+        //return true if current logged in user is owner of the given collection
+        GET("/{id}/is-owner", (rc)->{
+        	final int id = rc.getParameter("id").toInt();
+        	final String email = rc.getSession("email");
+        	final JcNode usr = new JcNode("u");
+        	final JcNode coll = new JcNode("c");
+        	
+        	//return the logged in user if he is owner of the collection
+        	//TODO return minimal data not the entire user 
+        	JcQueryResult res = Database.query(Database.access(), new IClause[]{
+                 MATCH.node(usr).label("user").
+                 	property("email").value(email).
+                 	relation().type("OWNER").in().
+                 	node(coll).label("collection"),
+                 WHERE.valueOf(coll.id()).EQUALS(id),
+                 RETURN.value(usr)
+        	});
+        	 
+
+    		 rc.status(200).json().send(res.resultOf(usr).size()>0);
+  
+        	 
+        });
     }
     
     private void removeEntriesWithNoCollection(RouteContext rc){
