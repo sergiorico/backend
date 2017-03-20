@@ -36,7 +36,7 @@ and later to see if correct connections and data was added to the database.
 There are somewhat limited documentation of jcypher but there are some examples on their github wiki.
 Easiest is probably to look at how things are done in the connect.routes package. Note that jcypher can't
 always translate a Neo4j query directly. But everything that can be achieved by Neo4j querying can be achieved
-in someway with jcypher.  
+in someway with jcypher. 
  - The application.properties file has to be configurated with the right settings in order to run the database and other applications.
 
 ### Eclipse
