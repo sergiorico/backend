@@ -1,9 +1,14 @@
 Documentation
 =============
 
- - Documentation is written in reStructuredText (with sphinx httpdomain plugin)
+Most documentation is written in reStructuredText but it is ok to use markdown as well. Markdown rendering uses `recommonmark`_. 
  
 
- - Install python and pip.
- - ``pip install sphinx sphinxcontrib.htmldomain``
- - Watch files & rebuild ``ls -d * | entr sphinx-build -b html . <path-to-output>``
+ - Install pip: `instructions`_
+ - ``pip install -r requirements.txt``
+ - Use `entr`_ to watch files, rebuild and run a webserver:
+  * ``cd docs/ && find ./ | entr -d -r 'sphinx-build . docsbin/ && cd docsbin/ && python -SimpleHTTPServer``
+  * or ``cd docs/ && make watch`` 
+
+   .. _instructions: https://packaging.python.org/installing/#install-pip-setuptools-and-wheel
+   .. _recommonmark: https://github.com/rtfd/recommonmark

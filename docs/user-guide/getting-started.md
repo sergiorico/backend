@@ -1,8 +1,8 @@
 Getting Started
 ===============
 
+## Backend
 
-## Overview
 Here is an overview of the different components that make up the backend. Each box corresponds to a java package with a similar name.
 
 ![img](../images/overview.svg)
@@ -17,7 +17,7 @@ The design is very simple:
  - The two exceptions (`DatabaseException.java` and `RequestException.java`) are thrown by handlers and handled by a function in `Connect.java`, like a bubble-style event.
  - Database access is only done through the `Database.java` class, it is also responsible for parsing any database errors and throwing a `DatabaseException` if needed.
 
-## Workflow
+### Workflow
  - Find issue on github. 
  - Pull latest updates from master.
  - Create a new branch with a sensible name and switch to it.
@@ -41,3 +41,8 @@ in someway with jcypher.
 
 ### Eclipse
 To use Eclipse, simply import the backend files as a github repository. We recommend using a maven plugin to facilitate running the server. 
+
+## Frontend
+
+![img](../images/frontend.svg)
+
