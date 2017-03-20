@@ -28,15 +28,15 @@ The design is very simple:
  - Pull latest changes.
  - Push the changes and create a pull request.
 
-## Tips for back-end
+## Tips for backend
  - A graph-database called Neo4j is used as our database. Quickest way to get up to speed of what it is and how it works is to visit their website. Neo4j have a graphical interface which is located at
-http://localhost:7474/browser/ when it's started. This can be helpful in the beginning to try commands
+`http://localhost:7474/browser/` when it's started. This can be helpful in the beginning to try commands
 and later to see if correct connections and data was added to the database.
  - jcypher is used for querying the database from the backend much like SQL but with different syntax.
 There are somewhat limited documentation of jcypher but there are some examples on their github wiki.
 Easiest is probably to look at how things are done in the connect.routes package. Note that jcypher can't
 always translate a Neo4j query directly. But everything that can be achieved by Neo4j querying can be achieved
-in someway with jcypher.  
+in someway with jcypher. 
  - The application.properties file has to be configurated with the right settings in order to run the database and other applications.
 
 ### Eclipse
