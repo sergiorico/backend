@@ -44,5 +44,35 @@ To use Eclipse, simply import the backend files as a github repository. We recom
 
 ## Frontend
 
-![img](../images/frontend.svg)
+Here is an overview of the different components that make up the frontend. 
+![img](../images/frontend.svg) 
+ 
+The structure is quite straightforward:
+ - We use jade, less and js to make up the webpages. The less and js files both have a base file which they are dependent on, then each page sub-levels down to have it’s unique properties which the rest of each pages sub-levels depend on.
+ - Jquery v1.8 is used and is imported via the base class so this is standard across all pages.
+ - For CSS, Less is used. Structurally we have a working files folder which divides the pages up and then it is imported into an all.less file which is converted into one CSS file, this is so the website only has to load this page once.
+ - There are many scripts set up to make development of the site easier, these scripts search for updates in the Less, Jade and js files and as the contributor make these changes they will update automatically with immediate effect provided there are no errors for the compiler.
+ - There is also two api end points, one for the live working version of the website and the other for when in development mode.
+
+### Workflow
+ - Find issue on github.
+ - Pull latest updates from master.
+ - Create a new branch with a sensible name and switch to it.
+ - Make sure neo4j and backend servers are running. 
+   backend: cd connect && mvn compile exec:java
+ - Run local web server @ port 8181 with XHR/AJAX against local 8080
+ - Use make files to have development scripts runnning to update changes on the fly
+ - Implement changes in your favorite IDE, Atom is recommended for frontend.
+ - Recommended browsers to test on are Chrome, Firefox & Safari
+ - Write test case for frontend changes if relevant.
+ - Document changes.
+ - Commit the changes with a sensible comment no longer than 50 characters.
+ - Pull latest changes.
+ - Push the changes and create a pull request.
+
+## Tips for Frontend
+ - Node.js is used so it is recommended that you use versions 5 or 6 which both work with the current version of the site
+ - It can be important to use the make clean file every now and then to be sure nothing is cached and the changes implemented are what you have made.
+ - There are a few utilities which are used across some of the pages. They can be found in src/js/util. One example is el.js which is used to efficiently create elements. It Is encouraged to use these utilities where possible to keep the coding consistent.
+
 
