@@ -266,6 +266,9 @@ public class Collection extends BackendRouter {
         // POST api.serpconnect.cs.lth.se/{id}/invite HTTP/1.1
         // email[0]=...&email[1]=
         POST("/{id}/invite", (rc) -> {
+        	if(!isOwner(rc)) 
+        		 throw new RequestException(401, "You are not authorized to invite people to this collection");
+        	
             int id = rc.getParameter("id").toInt();
             List<String> emails = rc.getParameter("email").toList(String.class);
             String inviter = rc.getSession("email");
@@ -321,25 +324,36 @@ public class Collection extends BackendRouter {
             JcNode coll = new JcNode("coll");
             JcRelation rel = new JcRelation("connection");
 
-            Database.query(rc.getLocal("db"), new IClause[]{
-                MATCH.node(user).label("user").property("email").value(email)
-                    .relation(rel)
-                    .node(coll).label("collection"),
-                WHERE.valueOf(coll.id()).EQUALS(id),
-                DO.DELETE(rel)
-            });
-            
-            //Delete collections that have no members (or invites)
-            Database.query(rc.getLocal("db"), new IClause[]{
-                MATCH.node(coll).label("collection"),
-                WHERE.valueOf(coll.id()).EQUALS(id).
-                AND().NOT().existsPattern(
-                        X.node().label("user")
-                        .relation()
-                        .node(coll)),
-                DO.DETACH_DELETE(coll)
-            });
-            
+            //if the leaver is the owner of the collection delete the entire collection.
+            if(isOwner(rc)){
+            	Database.query(rc.getLocal("db"), new IClause[]{
+        			MATCH.node(user).label("user").property("email").value(email)
+                    	.relation(rel)
+                    	.node(coll).label("collection"),
+	                WHERE.valueOf(coll.id()).EQUALS(id),
+	                DO.DETACH_DELETE(coll)
+            	});
+            }
+            else{
+	            Database.query(rc.getLocal("db"), new IClause[]{
+	                MATCH.node(user).label("user").property("email").value(email)
+	                    .relation(rel)
+	                    .node(coll).label("collection"),
+	                WHERE.valueOf(coll.id()).EQUALS(id),
+	                DO.DELETE(rel)
+	            });
+	            
+	            //Delete collections that have no members (or invites)
+	            Database.query(rc.getLocal("db"), new IClause[]{
+	                MATCH.node(coll).label("collection"),
+	                WHERE.valueOf(coll.id()).EQUALS(id).
+	                AND().NOT().existsPattern(
+	                        X.node().label("user")
+	                        .relation()
+	                        .node(coll)),
+	                DO.DETACH_DELETE(coll)
+	            });
+            }
             removeEntriesWithNoCollection(rc);
 
             rc.getResponse().ok();
@@ -348,9 +362,38 @@ public class Collection extends BackendRouter {
         // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
         // email=...
         POST("/{id}/kick", (rc) -> {
-            rc.status(500).text().send("Not yet implemented");
+        	
+        	if(!isOwner(rc)) 
+       		 	throw new RequestException(401, "You are not authorized to kick people from this collection");
+        	
+        	//don't allow the user to kick himself
+        	if(rc.getSession("email").toString().equals(rc.getParameter("email").toString()))
+        		throw new RequestException(400, "Can't kick yourself, please use leave collection if you want to leave the collection");
+        	 	
+        	 int id = rc.getParameter("id").toInt();
+        	 String email = rc.getParameter("email").toString();
+        	// System.out.println(email);
+             JcNode user = new JcNode("user");
+             JcNode coll = new JcNode("coll");
+             JcRelation rel = new JcRelation("connection");
+
+             JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                 MATCH.node(user).label("user").property("email").value(email)
+                     .relation(rel)
+                     .node(coll).label("collection"),
+                 WHERE.valueOf(coll.id()).EQUALS(id),
+                 DO.DELETE(rel),
+                 RETURN.value(user)
+             });
+          
+             if(res.resultOf(user).isEmpty())
+            	 throw new RequestException(404, email + " is not a member of collection " + id);
+              
+        	 rc.getResponse().ok();       
         });
 
+        
+        	
         // POST api.serpconnect.cs.lth.se/{id}/removeEntry HTTP/1.1
         // entryId=...
         POST("/{id}/removeEntry", (rc) -> {
@@ -419,27 +462,27 @@ public class Collection extends BackendRouter {
 
         //return true if current logged in user is owner of the given collection
         GET("/{id}/is-owner", (rc)->{
-        	final int id = rc.getParameter("id").toInt();
-        	final String email = rc.getSession("email");
-        	final JcNode usr = new JcNode("u");
-        	final JcNode coll = new JcNode("c");
-        	
-        	//return the logged in user if he is owner of the collection
-        	//TODO return minimal data not the entire user 
-        	JcQueryResult res = Database.query(Database.access(), new IClause[]{
-                 MATCH.node(usr).label("user").
-                 	property("email").value(email).
-                 	relation().type("OWNER").in().
-                 	node(coll).label("collection"),
-                 WHERE.valueOf(coll.id()).EQUALS(id),
-                 RETURN.value(usr)
-        	});
-        	 
-
-    		 rc.status(200).json().send(res.resultOf(usr).size()>0);
-  
-        	 
+    		 rc.status(200).json().send(isOwner(rc));
         });
+    }
+    
+    private boolean isOwner(RouteContext rc){
+    	final int id = rc.getParameter("id").toInt();
+    	final String email = rc.getSession("email");
+    	final JcNode usr = new JcNode("u");
+    	final JcNode coll = new JcNode("c");
+    	
+    	//return true as ok if the logged in user is owner of the collection
+    	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+             MATCH.node(usr).label("user").
+             	property("email").value(email).
+             	relation().type("OWNER").in().
+             	node(coll).label("collection"),
+             WHERE.valueOf(coll.id()).EQUALS(id),
+             NATIVE.cypher("RETURN true AS ok")
+    	});
+    	
+		return res.resultOf(new JcBoolean("ok")).size()>0;
     }
     
     private void removeEntriesWithNoCollection(RouteContext rc){
