@@ -263,57 +263,7 @@ public class Collection extends BackendRouter {
             rc.next();
         });
 
-        // POST api.serpconnect.cs.lth.se/{id}/invite HTTP/1.1
-        // email[0]=...&email[1]=
-        POST("/{id}/invite", (rc) -> {
-        	if(!isOwner(rc)) 
-        		 throw new RequestException(401, "You are not authorized to invite people to this collection");
-        	
-            int id = rc.getParameter("id").toInt();
-            List<String> emails = rc.getParameter("email").toList(String.class);
-            String inviter = rc.getSession("email");
-                        
-            for (String email : emails) {
-                JcNode user = new JcNode("user");
-                JcNode inviterNode = new JcNode("inviter");
-                JcNode coll = new JcNode("coll");
-
-                JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
-                    MATCH.node(user).label("user").property("email").value(email),
-                    RETURN.value(user)
-                });
-
-                boolean emptyUser = res.resultOf(user).isEmpty();
-
-                //create temporary unregistered user if non existent
-                if (emptyUser) {
-                	AccountSystem.createAccount(email, "", TrustLevel.UNREGISTERED);
-                } else if(res.resultOf(user).get(0).getProperty("trust").getValue().equals(TrustLevel.UNREGISTERED)){
-                	emptyUser = true;
-                }
-
-                // Use MERGE so we don't end up with multiple invites per user
-				// keep track of who invited the user and to which collection
-                Database.query(rc.getLocal("db"), new IClause[] { 
-                    MATCH.node(user).label("user").property("email").value(email),
-                    MATCH.node(coll).label("collection"), 
-                    WHERE.valueOf(coll.id()).EQUALS(id),
-                    MATCH.node(inviterNode).label("user").property("email").value(inviter),
-                    MERGE.node(user).relation().out().type("INVITE").node(coll),
-                    MERGE.node(user).relation().out().type("INVITER")
-                        .property("parentnode").value(id).node(inviterNode) 
-                });
-
-                String template = emptyUser ? inviteNewUserTemplate 
-                                            : inviteTemplate;
-                template = template.replace("{frontend}", frontend);
-
-                app.getMailClient().sendEmail(email, "SERP Connect - Collection Invite", template);
-            
-            }
-
-            rc.getResponse().ok();
-        });
+       
 
         // POST api.serpconnect.cs.lth.se/{id}/leave HTTP/1.1
         POST("/{id}/leave", (rc) -> {
@@ -359,38 +309,7 @@ public class Collection extends BackendRouter {
             rc.getResponse().ok();
         });
 
-        // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
-        // email=...
-        POST("/{id}/kick", (rc) -> {
-        	
-        	if(!isOwner(rc)) 
-       		 	throw new RequestException(401, "You are not authorized to kick people from this collection");
-        	
-        	//don't allow the user to kick himself
-        	if(rc.getSession("email").toString().equals(rc.getParameter("email").toString()))
-        		throw new RequestException(400, "Can't kick yourself, please use leave collection if you want to leave the collection");
-        	 	
-        	 int id = rc.getParameter("id").toInt();
-        	 String email = rc.getParameter("email").toString();
-        	// System.out.println(email);
-             JcNode user = new JcNode("user");
-             JcNode coll = new JcNode("coll");
-             JcRelation rel = new JcRelation("connection");
-
-             JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
-                 MATCH.node(user).label("user").property("email").value(email)
-                     .relation(rel)
-                     .node(coll).label("collection"),
-                 WHERE.valueOf(coll.id()).EQUALS(id),
-                 DO.DELETE(rel),
-                 RETURN.value(user)
-             });
-          
-             if(res.resultOf(user).isEmpty())
-            	 throw new RequestException(404, email + " is not a member of collection " + id);
-              
-        	 rc.getResponse().ok();       
-        });
+       
 
         
         	
@@ -463,6 +382,94 @@ public class Collection extends BackendRouter {
         //return true if current logged in user is owner of the given collection
         GET("/{id}/is-owner", (rc)->{
     		 rc.status(200).json().send(isOwner(rc));
+        });
+        
+        //must be logged in AND be member AND be owner of collection AND provide an email to proceed
+        ALL("/{id}/.*", (rc) -> {
+        	if(!isOwner(rc)) 
+       		 	throw new RequestException(401, "You must be an owner of the collection");
+        	if (rc.getParameter("email").isEmpty())
+                throw new RequestException("Invalid email");
+            rc.next();
+        });
+        
+        // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
+        // email=...
+        POST("/{id}/kick", (rc) -> {
+        	 
+        	
+        	 String email = rc.getParameter("email").toString();
+        	 //don't allow the user to kick himself
+    		 if(rc.getSession("email").toString().equals(rc.getParameter("email").toString()))
+        		throw new RequestException(400, "Can't kick yourself, please use leave collection if you want to leave the collection");
+        	 	
+        	 int id = rc.getParameter("id").toInt();
+             JcNode user = new JcNode("user");
+             JcNode coll = new JcNode("coll");
+             JcRelation rel = new JcRelation("connection");
+
+             JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                 MATCH.node(user).label("user").property("email").value(email)
+                     .relation(rel)
+                     .node(coll).label("collection"),
+                 WHERE.valueOf(coll.id()).EQUALS(id),
+                 DO.DELETE(rel),
+                 RETURN.value(user)
+             });
+          
+             if(res.resultOf(user).isEmpty())
+            	 throw new RequestException(404, email + " is not a member of collection " + id);
+              
+        	 rc.getResponse().ok();       
+        });
+        
+        // POST api.serpconnect.cs.lth.se/{id}/invite HTTP/1.1
+        // email[0]=...&email[1]=
+        POST("/{id}/invite", (rc) -> {
+            int id = rc.getParameter("id").toInt();
+            List<String> emails = rc.getParameter("email").toList(String.class);
+            String inviter = rc.getSession("email");
+                        
+            for (String email : emails) {
+                JcNode user = new JcNode("user");
+                JcNode inviterNode = new JcNode("inviter");
+                JcNode coll = new JcNode("coll");
+
+                JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                    MATCH.node(user).label("user").property("email").value(email),
+                    RETURN.value(user)
+                });
+
+                boolean emptyUser = res.resultOf(user).isEmpty();
+
+                //create temporary unregistered user if non existent
+                if (emptyUser) {
+                	AccountSystem.createAccount(email, "", TrustLevel.UNREGISTERED);
+                } else if(res.resultOf(user).get(0).getProperty("trust").getValue().equals(TrustLevel.UNREGISTERED)){
+                	emptyUser = true;
+                }
+
+                // Use MERGE so we don't end up with multiple invites per user
+				// keep track of who invited the user and to which collection
+                Database.query(rc.getLocal("db"), new IClause[] { 
+                    MATCH.node(user).label("user").property("email").value(email),
+                    MATCH.node(coll).label("collection"), 
+                    WHERE.valueOf(coll.id()).EQUALS(id),
+                    MATCH.node(inviterNode).label("user").property("email").value(inviter),
+                    MERGE.node(user).relation().out().type("INVITE").node(coll),
+                    MERGE.node(user).relation().out().type("INVITER")
+                        .property("parentnode").value(id).node(inviterNode) 
+                });
+
+                String template = emptyUser ? inviteNewUserTemplate 
+                                            : inviteTemplate;
+                template = template.replace("{frontend}", frontend);
+
+                app.getMailClient().sendEmail(email, "SERP Connect - Collection Invite", template);
+            
+            }
+
+            rc.getResponse().ok();
         });
     }
     
