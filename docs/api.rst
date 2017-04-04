@@ -275,7 +275,7 @@ Check login status
    :statuscode 401: no not logged in
 
 Get friends of a user
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/friends
 
    :param email: entry's unique email
@@ -288,7 +288,7 @@ Get friends of a user
    :>json array emails: an array of emails related to the users email including the users email.
 
 Get collections
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/collections
 
    Query a list of collections that the currently authenticated user is a member of.

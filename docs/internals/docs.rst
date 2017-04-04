@@ -12,3 +12,4 @@ Most documentation is written in reStructuredText but it is ok to use markdown a
 
    .. _instructions: https://packaging.python.org/installing/#install-pip-setuptools-and-wheel
    .. _recommonmark: https://github.com/rtfd/recommonmark
+   .. _entr: http://entrproject.org/

@@ -9,20 +9,36 @@ inner and outer workings of the SERP Connect `backend`_ and `frontend`_.
  .. _frontend: https://github.com/emenlu/website/
 
 .. _user-guide:
+.. _dev-docs:
+.. _admin-man:
+.. _internals:
 
 .. toctree::
    :maxdepth: 1
    :caption: Developer Documentation
 
-   user-guide/getting-started
-   user-guide/contributing
-   user-guide/development
-   user-guide/testing
+   dev-docs/getting-started
+   dev-docs/contributing
+   dev-docs/development
+   dev-docs/testing
 
    api
+
    internals/docs
    internals/sessions
    internals/trust
+   internals/collections
 
    frontend/import
-   frontend/invites
+
+.. toctree::
+   :maxdepth: 1
+   :caption: User Guide
+
+   user-guide/import
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Administrator Manual
+
+   admin-man/installing
