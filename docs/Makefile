@@ -6,8 +6,7 @@ images:
 images/%.svg : %.dot ; dot -T svg -o $@ $<
 
 build: images $(addprefix images/,$(IMAGES))
-=======
-all: request.png overview.png build
+all: build
 
 .PHONY: serve, watch 
 
