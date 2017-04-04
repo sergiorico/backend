@@ -42,3 +42,4 @@ inner and outer workings of the SERP Connect `backend`_ and `frontend`_.
    :caption: Administrator Manual
 
    admin-man/installing
+   admin-man/performance
