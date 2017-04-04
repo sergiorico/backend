@@ -296,27 +296,6 @@ public class Collection extends BackendRouter {
                     DO.DELETE(rel),
 	                DO.DETACH_DELETE(coll)
             	});
-            	
-            	
-            	
-            	
-            	
-            	// Use MERGE so we don't end up with multiple invites per user
-				// keep track of who invited the user and to which collection
-              /*  Database.query(rc.getLocal("db"), new IClause[] { 
-                    MATCH.node(user).label("user").property("email").value(email),
-                    MATCH.node(coll).label("collection"), 
-                    WHERE.valueOf(coll.id()).EQUALS(id),
-                    MATCH.node(inviterNode).label("user").property("email").value(inviter),
-                    MERGE.node(user).relation().out().type("INVITE").node(coll),
-                    MERGE.node(user).relation().out().type("INVITER")
-                        .property("parentnode").value(id).node(inviterNode) 
-                });*/
-            	
-            	
-            	
-            	
-            	
             }
             else{
 	            Database.query(rc.getLocal("db"), new IClause[]{
