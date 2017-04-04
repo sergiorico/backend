@@ -7,7 +7,6 @@ import org.apache.commons.lang3.StringUtils;
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
-import iot.jcypher.query.factories.clause.CASE;
 import iot.jcypher.query.factories.clause.CREATE;
 import iot.jcypher.query.factories.clause.DO;
 import iot.jcypher.query.factories.clause.MATCH;
@@ -333,7 +332,7 @@ public class Collection extends BackendRouter {
                 DO.DELETE(rel)
             });
             
-            //TODO: Optimize: Only remove the entry that was supposed to be delted.
+            //TODO: Optimize: Only remove the entry that was supposed to be deleted.
             
             removeEntriesWithNoCollection(rc);
 
@@ -436,48 +435,49 @@ public class Collection extends BackendRouter {
                 JcNode inviterNode = new JcNode("inviter");
                 JcNode coll = new JcNode("coll");
 
-                JcQueryResult res2 = Database.query(rc.getLocal("db"), new IClause[]{
+                boolean memberOf = Database.query(rc.getLocal("db"), new IClause[]{
                         MATCH.node().label("user").property("email").value(email).
                         relation().out().type("MEMBER_OF").
                         node(coll),
                         WHERE.valueOf(coll.id()).EQUALS(id),
                         NATIVE.cypher("RETURN TRUE AS ok")
-                    });
+                }).resultOf(new JcBoolean("ok")).size() > 0;
                 
-                if(res2.resultOf(new JcBoolean("ok")).size()==0){
+                // Don't send new invites if already member
+                if(memberOf)
+                    continue;
                 
-	                JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
-	                    MATCH.node(user).label("user").property("email").value(email),
-	                    RETURN.value(user)
-	                });
-	
-	                boolean emptyUser = res.resultOf(user).isEmpty();
-	
-	                //create temporary unregistered user if non existent
-	                if (emptyUser) {
-	                	AccountSystem.createAccount(email, "", TrustLevel.UNREGISTERED);
-	                } else if(res.resultOf(user).get(0).getProperty("trust").getValue().equals(TrustLevel.UNREGISTERED)){
-	                	emptyUser = true;
-	                }
-	
-	                // Use MERGE so we don't end up with multiple invites per user
-					// keep track of who invited the user and to which collection
-	                Database.query(rc.getLocal("db"), new IClause[] { 
-	                    MATCH.node(user).label("user").property("email").value(email),
-	                    MATCH.node(coll).label("collection"), 
-	                    WHERE.valueOf(coll.id()).EQUALS(id),
-	                    MATCH.node(inviterNode).label("user").property("email").value(inviter),
-	                    MERGE.node(user).relation().out().type("INVITE").node(coll),
-	                    MERGE.node(user).relation().out().type("INVITER")
-	                        .property("parentnode").value(id).node(inviterNode) 
-	                });
-	
-	                String template = emptyUser ? inviteNewUserTemplate 
-	                                            : inviteTemplate;
-	                template = template.replace("{frontend}", frontend);
-	
-	                app.getMailClient().sendEmail(email, "SERP Connect - Collection Invite", template);
+                JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                    MATCH.node(user).label("user").property("email").value(email),
+                    RETURN.value(user)
+                });
+
+                boolean emptyUser = res.resultOf(user).isEmpty();
+
+                //create temporary unregistered user if non existent
+                if (emptyUser) {
+                    AccountSystem.createAccount(email, "", TrustLevel.UNREGISTERED);
+                } else if(res.resultOf(user).get(0).getProperty("trust").getValue().equals(TrustLevel.UNREGISTERED)){
+                    emptyUser = true;
                 }
+
+                // Use MERGE so we don't end up with multiple invites per user
+                // keep track of who invited the user and to which collection
+                Database.query(rc.getLocal("db"), new IClause[] { 
+                    MATCH.node(user).label("user").property("email").value(email),
+                    MATCH.node(coll).label("collection"), 
+                    WHERE.valueOf(coll.id()).EQUALS(id),
+                    MATCH.node(inviterNode).label("user").property("email").value(inviter),
+                    MERGE.node(user).relation().out().type("INVITE").node(coll),
+                    MERGE.node(user).relation().out().type("INVITER")
+                        .property("parentnode").value(id).node(inviterNode) 
+                });
+
+                String template = emptyUser ? inviteNewUserTemplate 
+                                            : inviteTemplate;
+                template = template.replace("{frontend}", frontend);
+
+                app.getMailClient().sendEmail(email, "SERP Connect - Collection Invite", template);
             }
 
             rc.getResponse().ok();
