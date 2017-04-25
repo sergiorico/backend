@@ -274,16 +274,26 @@ public class Collection extends BackendRouter {
             int id = rc.getParameter("id").toInt();
 
             JcNode user = new JcNode("user");
+            JcNode inviters = new JcNode("inviters");
             JcNode coll = new JcNode("coll");
             JcRelation rel = new JcRelation("connection");
 
-            //if the leaver is the owner of the collection delete the entire collection.
+            //if the leaver is the owner of the collection
+            //find all members of the collection
+            //check if any member have invited any user
+            //if so delete the relation
+            //delete the entire collection.
             if(isOwner(rc)){
             	Database.query(rc.getLocal("db"), new IClause[]{
         			MATCH.node(user).label("user").property("email").value(email)
-                    	.relation(rel)
+                    	.relation()
                     	.node(coll).label("collection"),
 	                WHERE.valueOf(coll.id()).EQUALS(id),
+	                MATCH.node(coll)
+                    .relation().type("OWNER")
+                    .node(inviters).label("user"),
+                    MATCH.node(inviters).relation(rel).type("INVITER").node().label("user"),
+                    DO.DELETE(rel),
 	                DO.DETACH_DELETE(coll)
             	});
             }
