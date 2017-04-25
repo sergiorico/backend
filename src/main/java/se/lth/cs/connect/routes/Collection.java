@@ -345,7 +345,7 @@ public class Collection extends BackendRouter {
                 DO.DELETE(rel)
             });
             
-            //TODO: Optimize: Only remove the entry that was supposed to be delted.
+            //TODO: Optimize: Only remove the entry that was supposed to be deleted.
             
             removeEntriesWithNoCollection(rc);
 
@@ -442,12 +442,24 @@ public class Collection extends BackendRouter {
             int id = rc.getParameter("id").toInt();
             List<String> emails = rc.getParameter("email").toList(String.class);
             String inviter = rc.getSession("email");
-                        
+            
             for (String email : emails) {
                 JcNode user = new JcNode("user");
                 JcNode inviterNode = new JcNode("inviter");
                 JcNode coll = new JcNode("coll");
 
+                boolean memberOf = Database.query(rc.getLocal("db"), new IClause[]{
+                        MATCH.node().label("user").property("email").value(email).
+                        relation().out().type("MEMBER_OF").
+                        node(coll),
+                        WHERE.valueOf(coll.id()).EQUALS(id),
+                        NATIVE.cypher("RETURN TRUE AS ok")
+                }).resultOf(new JcBoolean("ok")).size() > 0;
+                
+                // Don't send new invites if already member
+                if(memberOf)
+                    continue;
+                
                 JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                     MATCH.node(user).label("user").property("email").value(email),
                     RETURN.value(user)
@@ -457,13 +469,13 @@ public class Collection extends BackendRouter {
 
                 //create temporary unregistered user if non existent
                 if (emptyUser) {
-                	AccountSystem.createAccount(email, "", TrustLevel.UNREGISTERED);
+                    AccountSystem.createAccount(email, "", TrustLevel.UNREGISTERED);
                 } else if(res.resultOf(user).get(0).getProperty("trust").getValue().equals(TrustLevel.UNREGISTERED)){
-                	emptyUser = true;
+                    emptyUser = true;
                 }
 
                 // Use MERGE so we don't end up with multiple invites per user
-				// keep track of who invited the user and to which collection
+                // keep track of who invited the user and to which collection
                 Database.query(rc.getLocal("db"), new IClause[] { 
                     MATCH.node(user).label("user").property("email").value(email),
                     MATCH.node(coll).label("collection"), 
@@ -479,7 +491,6 @@ public class Collection extends BackendRouter {
                 template = template.replace("{frontend}", frontend);
 
                 app.getMailClient().sendEmail(email, "SERP Connect - Collection Invite", template);
-            
             }
 
             rc.getResponse().ok();
