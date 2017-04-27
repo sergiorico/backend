@@ -2,6 +2,10 @@
 
 Export
 ======
+A brief description on how to export entries from the system to a CSV file.
+
+Method
+------
 
 For each collection on the profile page, there exists an option to export that collection. To do so, the user has to specify a filename and also a CSV delimiter and a taxonomy leaf delimiter.
 
