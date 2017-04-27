@@ -1,9 +1,9 @@
-.. _invites:
+.. _collections:
 
-Invites
-=======
+Collections
+===========
 
-It is possible to invite any email to a collection. 
+A collection is a neo4j object with a ``:collection`` label. All users that are members of the collection has a relation of type ``:MEMBER_OF`` pointing to the collection. The user who created the collection is considered the owner and has an additional relationship with type ``:OWNER``. It is possible to invite any email to a collection. 
 
 Inviting existing members
 -------------------------
@@ -25,3 +25,14 @@ Invite responses
 
 When a user accepts or rejects an invitation the user who invited the new user will get an email of which action was taken.
 If a temporary user gets deleted it will send a reject email.
+
+Leaving a collection
+--------------------
+A collection member can leave the collection voluntarily or be kicked by the collection owner.
+
+If a collection owner leaves the collection the collection and all related relations are destroyed.
+
+ - The collection node itself is detached and deleted.
+ - Pending invites (relations) to that collection are deleted.
+ - Entries in the collection are removed and will be deleted if they no longer are attached to any collection.
+ 

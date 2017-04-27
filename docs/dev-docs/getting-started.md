@@ -21,7 +21,7 @@ The design is very simple:
  - Find issue on github. 
  - Pull latest updates from master.
  - Create a new branch with a sensible name and switch to it.
- - Implement changes in your favorite IDE, Eclipse is recommended for backend, Atom for frontend.
+ - Implement changes in your favorite IDE, Eclipse is recommended for backend.
  - Write test case for backend changes if relevant.
  - Document changes.
  - Commit the changes with a sensible comment no longer than 50 characters.
@@ -61,9 +61,9 @@ The structure is quite straightforward:
  - Make sure neo4j and backend servers are running. 
    backend: cd connect && mvn compile exec:java
  - Run local web server @ port 8181 with XHR/AJAX against local 8080
- - Use make files to have development scripts runnning to update changes on the fly
+ - Use make files to have development scripts runnning to update changes on the fly.
  - Implement changes in your favorite IDE, Atom is recommended for frontend.
- - Recommended browsers to test on are Chrome, Firefox & Safari
+ - Recommended browsers to test on are Chrome, Firefox & Safari.
  - Write test case for frontend changes if relevant.
  - Document changes.
  - Commit the changes with a sensible comment no longer than 50 characters.
@@ -71,8 +71,9 @@ The structure is quite straightforward:
  - Push the changes and create a pull request.
 
 ## Tips for Frontend
- - Node.js is used so it is recommended that you use versions 5 or 6 which both work with the current version of the site
+ - Node.js is used so it is recommended that you use versions 5 or 6 which both work with the current version of the site.
  - It can be important to use the make clean file every now and then to be sure nothing is cached and the changes implemented are what you have made.
  - There are a few utilities which are used across some of the pages. They can be found in src/js/util. One example is el.js which is used to efficiently create elements. It Is encouraged to use these utilities where possible to keep the coding consistent.
+ - There is no need to compile after changes have been made to see effect. Simply save the file and update the localhost website to see the changes. 
 
 
