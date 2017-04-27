@@ -5,12 +5,12 @@ import se.lth.cs.connect.TrustLevel;
 import java.util.List;
 
 import java.security.SecureRandom;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 import com.lambdaworks.crypto.SCryptUtil;
 
+import iot.jcypher.database.IDBAccess;
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.graph.GrProperty;
 
@@ -19,11 +19,13 @@ import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcRelation;
 import iot.jcypher.query.values.JcString;
-import iot.jcypher.query.values.JcBoolean;
+import ro.pippo.core.route.RouteContext;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.CREATE;
 import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.factories.clause.SEPARATE;
 import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.factories.clause.DO;
 
 /**
@@ -182,14 +184,64 @@ public class AccountSystem {
      * Try and remove the user from the database. The user and all relations
      * to entries will be deleted. Methods throws database exception on error.
      */
-    public static boolean deleteAccount(String email) {
+    public static boolean deleteAccount(String email, IDBAccess db) {
         JcNode node = new JcNode("user");
-        JcQueryResult res = Database.query(Database.access(), new IClause[]{
+        JcNode coll = new JcNode("coll");
+        JcNode inviters = new JcNode("inviter");
+        JcRelation rel = new JcRelation("relation");
+        
+        //find all collection user is owner of
+        //from those collection go back to all owners <----------------------|
+        //check if any of the owners have outgoing invites <-----------------|
+        //delete invites													 |
+        //delete collection and all relations								 |
+        //-------------------------------------------------------------------|
+        //these might become obsolete later if only one owner is allowed-----|
+       Database.query(db, new IClause[]{
+			MATCH.node().label("user").property("email").value(email)
+            	.relation().type("OWNER")
+            	.node(coll).label("collection"),
+        	SEPARATE.nextClause(),
+            MATCH.node(coll)
+            	.relation().type("OWNER")
+            	.node(inviters).label("user"),
+            MATCH.node(inviters).relation(rel).type("INVITER").node().label("user"),
+            DO.DELETE(rel),
+            DO.DETACH_DELETE(coll)
+    	});
+        
+
+      
+    	//delete the user and all relations
+        Database.query(db, new IClause[]{
             MATCH.node(node).label("user").property("email").value(email),
             DO.DETACH_DELETE(node)
         });
 
+        removeCollectionWithNoUsers(db);
         return true;
+    }
+    
+    private static void removeCollectionWithNoUsers(IDBAccess db){
+    	final JcNode coll = new JcNode("c");
+    	Database.query(db, new IClause[]{
+                MATCH.node(coll).label("collection"),
+                WHERE.NOT().existsPattern(
+                        X.node().label("user")
+                        .relation().type("MEMBER_OF")
+                        .node(coll)),
+                DO.DETACH_DELETE(coll)
+            });
+    	
+    	final JcNode entry = new JcNode("e");
+    	Database.query(db, new IClause[]{
+                MATCH.node(entry).label("entry"),
+                WHERE.NOT().existsPattern(
+                        X.node().label("collection")
+                        .relation().type("CONTAINS")
+                        .node(entry)),
+                DO.DETACH_DELETE(entry)
+            });
     }
 
     /**
