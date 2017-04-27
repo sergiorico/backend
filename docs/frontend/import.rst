@@ -10,6 +10,8 @@ CSV
 
 In addition to choosing a collection name, whether Research or Challenge entries are to be imported has to be specified. Another thing that can be specified is what delimiter should be used for the CSV file. Default is comma, other choices are semi-colon, colon, tab, and many more. 
 
+A taxonomy leaf delimiter should also be specified. The delimiter is used to separate the leaves for a taxonomy node. For example, if a cell looks like (test|test2) and gets mapped to some taxonomy node and the leaf delimiter is "|", the value of that entry will be an array consisting of ["test, "test2"]. 
+
 The first row in the CSV, meaning the headers, will be mapped to the following attributes:
 
  - Reference
