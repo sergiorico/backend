@@ -111,12 +111,30 @@ public class Admin extends BackendRouter {
         	
         });
         
+        // POST api.serp.se/v1/admin/delete-user
+        // email=...
         POST("/delete-user", (rc) -> {
         	if(rc.getParameter("email").isEmpty())
         		throw new RequestException("must provide an user email parameter");
 
         	AccountSystem.deleteAccount(rc.getParameter("email").toString(),rc.getLocal("db"));
         	rc.getResponse().ok();
+        });
+        
+        // POST api.serp.se/v1/admin/delete-entry 
+        // entryId=...
+        POST("/delete-entry", (rc) -> {
+            if (rc.getParameter("entryId").isEmpty())
+                throw new RequestException("Must provide entry parameter");
+            
+            final JcNode e = new JcNode("e");
+        	int entry = rc.getParameter("entryId").toInt();
+        	Database.query(rc.getLocal("db"), new IClause[]{
+                 MATCH.node(e).label("entry"),
+                 WHERE.valueOf(e.id()).EQUALS(entry),
+                 DO.DETACH_DELETE(e)
+             });
+             rc.getResponse().ok();
         });
 
         // PUT api.serp.se/v1/admin/set-trust HTTP/1.1

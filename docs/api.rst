@@ -552,6 +552,18 @@ Only requests with an attached session id, where user's trust level is Admin, ar
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
 
+.. http:get:: /v1/admin/collections-owned-by
+   
+   Return names of all collections user is owner of
+   
+   :param email: email of the user 
+   
+   :statuscode 200: ok, return collections
+   :statuscode 400: no email was given
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
+    
+
 .. http:post:: /v1/admin/accept-entry
 
    Accept a pending entry.
@@ -573,6 +585,29 @@ Only requests with an attached session id, where user's trust level is Admin, ar
    :type entry: int
 
    :statuscode 200: ok, entry is rejected
+   :statuscode 400: entry is not an int
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
+   :statuscode 404: no such entry exists
+   
+.. http:post:: /v1/admin/delete-user
+   
+   Delete a user with a given email
+   
+   :param email: email of the user to be deleted
+   
+   :statuscode 200: ok, user got deleted
+   :statuscode 400: no email was given
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
+    
+.. http:post:: /v1/admin/delete-entry
+   
+   Delete entry with a given entry id
+   
+   :param entryId: id of the entry
+   
+   :statuscode 200: ok, entry got deleted
    :statuscode 400: entry is not an int
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
