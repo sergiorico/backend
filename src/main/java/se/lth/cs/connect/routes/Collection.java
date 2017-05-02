@@ -266,8 +266,6 @@ public class Collection extends BackendRouter {
             rc.next();
         });
 
-       
-
         // POST api.serpconnect.cs.lth.se/{id}/leave HTTP/1.1
         POST("/{id}/leave", (rc) -> {
             String email = rc.getSession("email");
@@ -403,9 +401,8 @@ public class Collection extends BackendRouter {
         // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
         // email=...
         POST("/{id}/kick", (rc) -> {
-        	 
-        	
         	 String email = rc.getParameter("email").toString();
+
         	 //don't allow the user to kick himself
     		 if(rc.getSession("email").toString().equals(rc.getParameter("email").toString()))
         		throw new RequestException(400, "Can't kick yourself, please use leave collection if you want to leave the collection");

@@ -17,6 +17,7 @@ import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
 import iot.jcypher.query.values.JcCollection;
+import iot.jcypher.query.values.JcString;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcRelation;
 import ro.pippo.core.Messages;
@@ -146,29 +147,8 @@ public class Account extends BackendRouter {
                 rc.getResponse().ok();
             }
         });
-
-        // GET api.serp.se/v1/account/friends HTTP/1.1
-        GET("/friends", (rc)->{
-        	final JcNode coll = new JcNode("coll");
-        	JcNode u = new JcNode("u");
-        	//find all emails of users in mutual collections
-        	String email = rc.getParameter("email").toString();
-        	List<GrNode> res = Database.query(rc.getLocal("db"), new IClause[]{
-    	            MATCH.node().label("user").property("email").value(email)
-    	                .relation().type("MEMBER_OF").node(coll).label("collection").
-    	                relation().type("MEMBER_OF").node(u).label("user"),
-    	            RETURN.DISTINCT().value(u)
-    	        }).resultOf(u);
-
-        	String[] ret=new String[res.size()];
-        	for(int i=0; i<res.size(); i++){
-        		ret[i]=res.get(i).getProperty("email").getValue().toString();
-        	}
-        	
-        	rc.json().send(ret);
-        });
         
-     // GET api.serp.se/v1/account/reset-password?token=igotmypermitrighthere HTTP/1.1
+        // GET api.serp.se/v1/account/reset-password?token=igotmypermitrighthere HTTP/1.1
         GET("/reset-password", (rc) -> {
             String token = rc.getParameter("token").toString();
 
@@ -196,9 +176,9 @@ public class Account extends BackendRouter {
         	String email = rc.getSession("resetemail").toString();
         	String password = rc.getParameter("passw").toString();
         	
-		AccountSystem.changePassword(email, password);
+		    AccountSystem.changePassword(email, password);
         	
-		rc.resetSession();
+		    rc.resetSession();
         	rc.setSession("email", email);
         	rc.getResponse().ok();
         });
@@ -236,6 +216,25 @@ public class Account extends BackendRouter {
         // GET api.serp.se/v1/account/login HTTP/1.1
         GET("/login", (rc) -> {
             rc.getResponse().ok();
+        });
+
+         // GET api.serp.se/v1/account/friends HTTP/1.1
+        GET("/friends", (rc)->{
+        	final JcNode coll = new JcNode("coll");
+        	final JcNode u = new JcNode("u");
+            final JcString friends = new JcString("friends");
+            
+        	//find all emails of users in mutual collections
+        	String email = rc.getParameter("email").toString();
+
+        	List<String> res = Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node().label("user").property("email").value(email)
+                    .relation().type("MEMBER_OF").node(coll).label("collection")
+                    .relation().type("MEMBER_OF").node(u).label("user"),
+                RETURN.DISTINCT().value(u.property("email")).AS(friends)
+            }).resultOf(friends);
+
+        	rc.json().send(res.toArray());
         });
 
         // GET api.serp.se/v1/account/self HTTP/1.1
