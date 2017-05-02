@@ -274,7 +274,6 @@ public class Collection extends BackendRouter {
             int id = rc.getParameter("id").toInt();
 
             JcNode user = new JcNode("user");
-            JcNode inviters = new JcNode("inviters");
             JcNode coll = new JcNode("coll");
             JcRelation rel = new JcRelation("connection");
 
@@ -287,19 +286,18 @@ public class Collection extends BackendRouter {
             	Database.query(rc.getLocal("db"), new IClause[]{
         			MATCH.node(user).label("user").property("email").value(email)
                     	.relation()
-                    	.node(coll).label("collection"),
+                        .node(coll).label("collection"),
 	                WHERE.valueOf(coll.id()).EQUALS(id),
-	                MATCH.node(coll)
-                    .relation().type("OWNER")
-                    .node(inviters).label("user"),
-                    MATCH.node(inviters).relation(rel).type("INVITER").node().label("user"),
+	                OPTIONAL_MATCH.node(coll).relation().type("OWNER")
+                        .node().label("user")
+                        .relation(rel).type("INVITER")
+                        .node().label("user"),
                     DO.DELETE(rel),
 	                DO.DETACH_DELETE(coll)
             	});
-            }
-            else{
+            } else {
 	            Database.query(rc.getLocal("db"), new IClause[]{
-	                MATCH.node(user).label("user").property("email").value(email)
+	                MATCH.node().label("user").property("email").value(email)
 	                    .relation(rel)
 	                    .node(coll).label("collection"),
 	                WHERE.valueOf(coll.id()).EQUALS(id),
@@ -322,10 +320,6 @@ public class Collection extends BackendRouter {
             rc.getResponse().ok();
         });
 
-       
-
-        
-        	
         // POST api.serpconnect.cs.lth.se/{id}/removeEntry HTTP/1.1
         // entryId=...
         POST("/{id}/removeEntry", (rc) -> {
