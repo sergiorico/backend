@@ -551,6 +551,33 @@ Only requests with an attached session id, where user's trust level is Admin, ar
    :statuscode 200: ok, return pending entries
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
+   
+.. http:get:: /v1/admin/collections
+
+   Get all collections that the admin is NOT member of
+
+   .. sourcecode:: js
+
+      [Collection, Collection, ..., Collection]
+
+   :>jsonarr Collection: A `Collection`_ object.
+
+   :statuscode 200: ok, return collections
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
+
+.. http:post:: /v1/admin/delete-collection
+
+   Delete a collection
+
+   :param entry: ID of collection to delete.
+   :type entry: int
+
+   :statuscode 200: ok, collection got deleted
+   :statuscode 400: entry is not an int
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
+   :statuscode 404: no such collection exists
 
 .. http:post:: /v1/admin/accept-entry
 

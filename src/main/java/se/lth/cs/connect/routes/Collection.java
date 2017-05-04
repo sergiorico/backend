@@ -490,7 +490,7 @@ public class Collection extends BackendRouter {
         });
     }
     
-    private boolean isOwner(RouteContext rc){
+    public static boolean isOwner(RouteContext rc){
     	final int id = rc.getParameter("id").toInt();
     	final String email = rc.getSession("email");
     	final JcNode usr = new JcNode("u");

@@ -10,6 +10,7 @@ import iot.jcypher.query.factories.clause.DO;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.values.JcNode;
 import ro.pippo.core.PippoSettings;
 import se.lth.cs.connect.Connect;
@@ -88,6 +89,21 @@ public class Admin extends BackendRouter {
             });
             rc.getResponse().ok();
         });
+        
+        
+        POST("/delete-collection", (rc) -> {
+            if (rc.getParameter("id").isEmpty())
+                throw new RequestException("Must provide entry parameter");
+            
+            int id = rc.getParameter("id").toInt();
+            final JcNode c = new JcNode("c");
+            Database.query(rc.getLocal("db"), new IClause[]{
+            	MATCH.node(c).label("collection"),
+            	WHERE.valueOf(c.id()).EQUALS(id),
+            	DO.DETACH_DELETE(c)
+            });
+            rc.getResponse().ok();
+        });
 
         // PUT api.serp.se/v1/admin/set-trust HTTP/1.1
         // email=...&trust=...
@@ -116,6 +132,27 @@ public class Admin extends BackendRouter {
             final List<GrNode> everyone = res.resultOf(u);
             rc.json().send(Graph.User.fromList(everyone));
         });
+        
+        GET("/collections", (rc) -> {
+        	final JcNode c = new JcNode("c");
+        	final String email = rc.getSession("email");
+        	final JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+        		MATCH.node(c).label("collection"),
+        		WHERE.NOT().existsPattern(
+                        X.node().label("user").property("email").value(email)
+                        .relation().type("MEMBER_OF")
+                        .node(c)),
+        		RETURN.value(c)
+        	});
+        	
+        	final List<GrNode> allColls = res.resultOf(c);
+        	rc.json().send(Graph.Collection.fromList(allColls));
+        });
+        
+        GET("/{id}/is-owner", (rc)->{
+   		 rc.status(200).json().send(Collection.isOwner(rc));
+       });
+
     }
 
     public String getPrefix() { return "/v1/admin"; }
