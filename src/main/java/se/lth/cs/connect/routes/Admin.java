@@ -11,11 +11,13 @@ import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
 import iot.jcypher.query.values.JcNode;
+import iot.jcypher.query.values.JcString;
 import ro.pippo.core.PippoSettings;
 import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
+import se.lth.cs.connect.Graph.User;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 
@@ -87,6 +89,52 @@ public class Admin extends BackendRouter {
                 DO.DETACH_DELETE(e)
             });
             rc.getResponse().ok();
+        });
+        
+        
+        GET("/collections-owned-by", (rc)->{
+        	if(rc.getParameter("email").isEmpty())
+        		throw new RequestException("must provide an user email parameter");
+
+        	final JcNode coll = new JcNode("coll");
+        	final JcString cString = new JcString("cString");
+        	final JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+        		MATCH.node().label("user").property("email").value(rc.getParameter("email").toString())
+        		.relation().type("OWNER").node(coll).label("collection"),
+        		RETURN.value(coll.property("name")).AS(cString)
+        	});
+        	
+            final List<String> found = res.resultOf(cString);
+            String[] colls = new String[found.size()];
+            found.toArray(colls);
+            rc.status(200).json().send(colls);
+        	
+        });
+        
+        // POST api.serp.se/v1/admin/delete-user
+        // email=...
+        POST("/delete-user", (rc) -> {
+        	if(rc.getParameter("email").isEmpty())
+        		throw new RequestException("must provide an user email parameter");
+
+        	AccountSystem.deleteAccount(rc.getParameter("email").toString(),rc.getLocal("db"));
+        	rc.getResponse().ok();
+        });
+        
+        // POST api.serp.se/v1/admin/delete-entry 
+        // entryId=...
+        POST("/delete-entry", (rc) -> {
+            if (rc.getParameter("entryId").isEmpty())
+                throw new RequestException("Must provide entry parameter");
+            
+            final JcNode e = new JcNode("e");
+        	int entry = rc.getParameter("entryId").toInt();
+        	Database.query(rc.getLocal("db"), new IClause[]{
+                 MATCH.node(e).label("entry"),
+                 WHERE.valueOf(e.id()).EQUALS(entry),
+                 DO.DETACH_DELETE(e)
+             });
+             rc.getResponse().ok();
         });
 
         // PUT api.serp.se/v1/admin/set-trust HTTP/1.1

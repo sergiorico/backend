@@ -70,7 +70,7 @@ public class CleanupUsers {
 							Collection.handleInvitation(db, email, c.intValue(), "rejected", app);
 						}
 
-						AccountSystem.deleteAccount(email);
+						AccountSystem.deleteAccount(email,db);
 					}
 				}
 
