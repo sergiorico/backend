@@ -274,7 +274,7 @@ public class Account extends BackendRouter {
 
         // POST api.serp.se/v1/account/delete HTTP/1.1
         POST("/delete", (rc) -> {
-            AccountSystem.deleteAccount(rc.getSession("email"));
+            AccountSystem.deleteAccount(rc.getSession("email"),rc.getLocal("db"));
             rc.resetSession();
             rc.getResponse().ok();
         });
