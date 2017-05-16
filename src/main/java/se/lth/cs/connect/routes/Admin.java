@@ -104,8 +104,9 @@ public class Admin extends BackendRouter {
             	DO.DETACH_DELETE(c)
             });
             rc.getResponse().ok();
+        });
 
-        GET("/collections-owned-by", (rc)->{
+        GET("/collections-owned-by", (rc) -> {
         	if(rc.getParameter("email").isEmpty())
         		throw new RequestException("must provide an user email parameter");
 
