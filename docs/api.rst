@@ -668,3 +668,14 @@ Only requests with an attached session id, where user's trust level is Admin, ar
    :statuscode 200: ok, return users
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
+   
+.. http:get:: v1/admin/is-collection-owner
+
+	:param id: id of the collection
+	:type id: int
+	
+	Return true if the admin is owner of the collection
+	
+   :statuscode 200: ok, return boolean 
+   :statuscode 401: user is not logged in
+   :statuscode 403: user is not an admin
