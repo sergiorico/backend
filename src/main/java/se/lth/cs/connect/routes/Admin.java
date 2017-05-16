@@ -149,7 +149,7 @@ public class Admin extends BackendRouter {
         	rc.json().send(Graph.Collection.fromList(allColls));
         });
         
-        GET("/{id}/is-owner", (rc)->{
+        GET("/{id}/is-collection-owner", (rc)->{
    		 rc.status(200).json().send(Collection.isOwner(rc));
        });
 
