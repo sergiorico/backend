@@ -94,7 +94,7 @@ public class Admin extends BackendRouter {
        
         POST("/delete-collection", (rc) -> {
             if (rc.getParameter("id").isEmpty())
-                throw new RequestException("Must provide entry parameter");
+                throw new RequestException("Must provide collection parameter");
             
             int id = rc.getParameter("id").toInt();
             final JcNode c = new JcNode("c");
@@ -103,6 +103,18 @@ public class Admin extends BackendRouter {
             	WHERE.valueOf(c.id()).EQUALS(id),
             	DO.DETACH_DELETE(c)
             });
+            
+            final JcNode entry = new JcNode("e");
+        	Database.query(rc.getLocal("db"), new IClause[]{
+                    MATCH.node(entry).label("entry"),
+                    WHERE.NOT().existsPattern(
+                            X.node().label("collection")
+                            .relation().type("CONTAINS")
+                            .node(entry)),
+                    DO.DETACH_DELETE(entry)
+                });
+            
+            
             rc.getResponse().ok();
         });
 
