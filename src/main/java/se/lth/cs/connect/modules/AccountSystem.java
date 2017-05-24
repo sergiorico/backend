@@ -162,11 +162,11 @@ public class AccountSystem {
         acc = new Account(email,
             SCryptUtil.scrypt(password, SCRYPT_N, SCRYPT_R, SCRYPT_P), trust);
 
-        
+        // (u)-[:MEMBER_OF]->(c)-[:OWNER]->(u)
         Database.query(Database.access(), new IClause[]{
             CREATE.node(coll).label("collection")
                 .property("name").value("default"),
-            CREATE.node().label("user")
+            CREATE.node(user).label("user")
                 .property("email").value(email)
                 .property("password").value(acc.password)
                 .property("trust").value(trust)
@@ -174,8 +174,7 @@ public class AccountSystem {
                 .property("default").value(coll.id())
                 .relation().out().type("MEMBER_OF")
                 .node(coll)
-  
-                
+                .relation().out().type("OWNER").node(user)                
         });
         return true;
     }
