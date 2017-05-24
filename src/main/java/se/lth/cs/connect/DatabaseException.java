@@ -1,8 +1,7 @@
 package se.lth.cs.connect;
 
-import ro.pippo.core.RuntimeMode;
 import iot.jcypher.query.JcQueryResult;
-
+import ro.pippo.core.RuntimeMode;
 import se.lth.cs.connect.modules.Database;
 
 /**

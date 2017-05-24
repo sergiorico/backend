@@ -1,14 +1,15 @@
 package se.lth.cs.connect.modules;
 
-import ro.pippo.core.PippoSettings;
-
 import java.util.Properties;
+
 import javax.mail.Message;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+
+import ro.pippo.core.PippoSettings;
 
 /**
 * Send email.
@@ -22,7 +23,8 @@ public class Mailman extends MailClient {
         smtp.put(field, props.getString(field, def));
     }
 
-    public void configure(PippoSettings props){
+    @Override
+	public void configure(PippoSettings props){
         smtp = new Properties();
         loadSetting(props, "mail.smtp.host", "smtp.gmail.com");
         loadSetting(props, "mail.smtp.auth", "true");
@@ -39,10 +41,12 @@ public class Mailman extends MailClient {
     /**
     * Send the email via SMTP using StartTLS and SSL
     */
-    public boolean sendEmail(String to, String subject, String html) {
+    @Override
+	public boolean sendEmail(String to, String subject, String html) {
         // Create the session
         Session session = Session.getDefaultInstance(smtp, new javax.mail.Authenticator() {
-            protected PasswordAuthentication getPasswordAuthentication() {
+            @Override
+			protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(USER, PASSW);
             }
         });

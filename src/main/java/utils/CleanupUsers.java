@@ -1,5 +1,5 @@
 package utils;
-import static java.util.concurrent.TimeUnit.*;
+import static java.util.concurrent.TimeUnit.HOURS;
 
 import java.math.BigDecimal;
 import java.time.ZoneOffset;
@@ -18,7 +18,7 @@ import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.TrustLevel;
-import se.lth.cs.connect.modules.AccountSystem;
+import se.lth.cs.connect.events.DeleteAccountEvent;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.routes.Collection;
 
@@ -26,33 +26,34 @@ import se.lth.cs.connect.routes.Collection;
 
 public class CleanupUsers {
 	private Connect app;
-	
+
 	public CleanupUsers(Connect app){
 		this.app = app;
 	}
-	 
+
     private final ScheduledExecutorService scheduler =
        Executors.newScheduledThreadPool(1);
 
     public void everyTwelveHours() {
         final Runnable cleaner = new Runnable() {
-			public void run() { 
+			@Override
+			public void run() {
 				IDBAccess db = Database.access();
-				
+
 				JcNode usr = new JcNode("u");
 				JcQueryResult res = Database.query(db, new IClause[]{
 					MATCH.node(usr).label("user").property("trust").value(TrustLevel.UNREGISTERED),
 					RETURN.value(usr)
 				});
-				
+
 				ZonedDateTime currentTime = ZonedDateTime.now(ZoneOffset.UTC);
-				
+
 				for (GrNode u: res.resultOf(usr)) {
 					//get time difference
 					String email = u.getProperty("email").getValue().toString();
 					ZonedDateTime userTime = ZonedDateTime.parse(u.getProperty("signupdate").getValue().toString());
 					long minutes = ChronoUnit.MINUTES.between(userTime, currentTime);
-					
+
 					//delete if the account is older than 1 week.
 					if (minutes > 60*24*7) {
 						JcNode user = new JcNode("usr");
@@ -70,7 +71,7 @@ public class CleanupUsers {
 							Collection.handleInvitation(db, email, c.intValue(), "rejected", app);
 						}
 
-						AccountSystem.deleteAccount(email,db);
+						new DeleteAccountEvent(email).execute();
 					}
 				}
 
