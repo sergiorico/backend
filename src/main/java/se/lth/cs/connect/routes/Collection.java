@@ -140,10 +140,11 @@ public class Collection extends BackendRouter {
             JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node().label("user")
                     .relation(u).type("MEMBER_OF")
-                    .node(coll).label("collection")
+                    .node(coll).label("collection"),
+                WHERE.valueOf(coll.id()).EQUALS(id),
+                OPTIONAL_MATCH.node(coll)
                     .relation(e).type("CONTAINS")
                     .node().label("entry"),
-                WHERE.valueOf(coll.id()).EQUALS(id),
                 NATIVE.cypher("RETURN COUNT(DISTINCT u) AS users, COUNT(DISTINCT e) AS entries")
             });
 
