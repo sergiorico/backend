@@ -2,10 +2,7 @@ package se.lth.cs.connect.routes;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import iot.jcypher.database.IDBAccess;
 // required for building queries and interpreting query results
@@ -15,11 +12,8 @@ import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
-import iot.jcypher.query.factories.clause.WHERE;
-import iot.jcypher.query.values.JcCollection;
-import iot.jcypher.query.values.JcString;
 import iot.jcypher.query.values.JcNode;
-import iot.jcypher.query.values.JcRelation;
+import iot.jcypher.query.values.JcString;
 import ro.pippo.core.Messages;
 import ro.pippo.core.PippoConstants;
 import ro.pippo.core.PippoSettings;
@@ -27,9 +21,9 @@ import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
+import se.lth.cs.connect.events.DeleteAccountEvent;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
-import se.lth.cs.connect.modules.Mailman;
 
 /**
  * Handles account related actions.
@@ -76,7 +70,8 @@ public class Account extends BackendRouter {
         }).resultOf(coll);
     }
 
-    protected void setup(PippoSettings conf) {
+    @Override
+	protected void setup(PippoSettings conf) {
         // POST api.serp.se/v1/account/login HTTP/1.1
         // email=...&passw=...
         POST("/login", (rc) -> {
@@ -117,10 +112,10 @@ public class Account extends BackendRouter {
             String message = registerTemplate
                 .replace("{token}", token)
                 .replace("{hostname}", hostname);
-            
+
             app.getMailClient().
             	sendEmail(email, "SERP connect registration", message);
-	            
+
             rc.resetSession();
             rc.setSession("email", email);
             rc.getResponse().ok();
@@ -143,11 +138,11 @@ public class Account extends BackendRouter {
 
                 app.getMailClient().
         			sendEmail(email, "Password reset request", message);
-                	
+
                 rc.getResponse().ok();
             }
         });
-        
+
         // GET api.serp.se/v1/account/reset-password?token=igotmypermitrighthere HTTP/1.1
         GET("/reset-password", (rc) -> {
             String token = rc.getParameter("token").toString();
@@ -158,26 +153,26 @@ public class Account extends BackendRouter {
             String email = AccountSystem.verifyResetPasswordToken(token);
             if (email == null)
             	throw new RequestException("Invalid reset token!");
-            
+
             rc.resetSession();
             rc.setSession("resetemail", email);
             rc.redirect(frontend + "/resetpassword.html");
         });
-        
+
         // POST api.serp.se/v1/account/reset-password-confirm
         // passw=...
         POST("/reset-password-confirm",(rc)-> {
         	if(rc.getSession("resetemail") == null)
-        		throw new RequestException("Session 'resetemail' is not set"); 
+        		throw new RequestException("Session 'resetemail' is not set");
         	if(rc.getParameter("passw").isEmpty()){
         		throw new RequestException("Must provide a password.");
         	}
 
         	String email = rc.getSession("resetemail").toString();
         	String password = rc.getParameter("passw").toString();
-        	
+
 		    AccountSystem.changePassword(email, password);
-        	
+
 		    rc.resetSession();
         	rc.setSession("email", email);
         	rc.getResponse().ok();
@@ -194,10 +189,10 @@ public class Account extends BackendRouter {
             String email = AccountSystem.verifyEmail(token);
             if (email == null)
                 throw new RequestException("Invalid token: " + token);
-            
+
             String message = notifyAdminOnVerify.replace("{email}", email);
             app.getMailClient().
-    			sendEmail(adminEmail, "SERP connect email registration", message);  
+    			sendEmail(adminEmail, "SERP connect email registration", message);
 
             rc.resetSession();
             rc.setSession("email", email);
@@ -223,7 +218,7 @@ public class Account extends BackendRouter {
         	final JcNode coll = new JcNode("coll");
         	final JcNode u = new JcNode("u");
             final JcString friends = new JcString("friends");
-            
+
         	//find all emails of users in mutual collections
         	String email = rc.getParameter("email").toString();
 
@@ -274,7 +269,7 @@ public class Account extends BackendRouter {
 
         // POST api.serp.se/v1/account/delete HTTP/1.1
         POST("/delete", (rc) -> {
-            AccountSystem.deleteAccount(rc.getSession("email"),rc.getLocal("db"));
+            new DeleteAccountEvent(rc.getSession("email")).execute();
             rc.resetSession();
             rc.getResponse().ok();
         });
@@ -340,5 +335,6 @@ public class Account extends BackendRouter {
         }
     }
 
-    public String getPrefix() { return "/v1/account"; }
+    @Override
+	public String getPrefix() { return "/v1/account"; }
 }

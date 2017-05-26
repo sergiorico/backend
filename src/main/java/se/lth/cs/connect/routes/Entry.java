@@ -358,9 +358,9 @@ public class Entry extends BackendRouter {
             } catch (NumberFormatException nfe) {
                 throw new RequestException("Collection Id must to an integer");
             }
-            
+
             boolean tagAsPending = !TrustLevel.authorize(user.trust, TrustLevel.VERIFIED);
-            
+
             // Validate
             String err = e.validate();
             if (err != null)
@@ -395,12 +395,12 @@ public class Entry extends BackendRouter {
 
             for (int i = 0; i < taxonomy.size(); i++)
                 query[5 + i] = taxonomy.get(i);
-            
+
             query[taxonomy.size() + 5] = NATIVE.cypher("RETURN id(entry) as id");
 
             JcQueryResult jqr = Database.query(rc.getLocal("db"), query);
             String id = jqr.resultOf(new JcNumber("id")).get(0).toString();
-            
+
             // TODO: Return something proper
             rc.json().send("{\"message\": \"Ok\", \"id\": " + id + "}");
         });

@@ -1,8 +1,5 @@
 package se.lth.cs.connect;
 
-import ro.pippo.core.RuntimeMode;
-import iot.jcypher.query.JcQueryResult;
-
 /**
  * Whenever the user must provide data, the data can in some cases be invalid.
  * In such cases, throw an exception.

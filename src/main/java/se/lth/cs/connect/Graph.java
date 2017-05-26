@@ -1,10 +1,10 @@
 package se.lth.cs.connect;
 
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
 
-import iot.jcypher.graph.GrNode;
 import iot.jcypher.graph.GrLabel;
+import iot.jcypher.graph.GrNode;
 import iot.jcypher.graph.GrProperty;
 import iot.jcypher.graph.GrRelation;
 

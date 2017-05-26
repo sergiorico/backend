@@ -18,7 +18,9 @@ import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
-import se.lth.cs.connect.Graph.User;
+import se.lth.cs.connect.events.DeleteAccountEvent;
+import se.lth.cs.connect.events.DeleteCollectionEvent;
+import se.lth.cs.connect.events.DeleteEntryEvent;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 
@@ -30,7 +32,8 @@ public class Admin extends BackendRouter {
         super(app);
     }
 
-    protected void setup(PippoSettings conf) {
+    @Override
+	protected void setup(PippoSettings conf) {
         // Require login and admin status on all routes
         ALL(".*", (rc) -> {
             String email = rc.getSession("email");
@@ -69,7 +72,7 @@ public class Admin extends BackendRouter {
             int entry = rc.getParameter("entry").toInt();
 
             final JcNode e = new JcNode("e");
-            final JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+            Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node(e).label("entry"),
                 WHERE.valueOf(e.id()).EQUALS(entry),
                 DO.REMOVE(e.property("pending"))
@@ -84,37 +87,20 @@ public class Admin extends BackendRouter {
             int entry = rc.getParameter("entry").toInt();
 
             final JcNode e = new JcNode("e");
-            final JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+            Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node(e).label("entry"),
                 WHERE.valueOf(e.id()).EQUALS(entry),
                 DO.DETACH_DELETE(e)
             });
             rc.getResponse().ok();
         });
-       
+
         POST("/delete-collection", (rc) -> {
             if (rc.getParameter("id").isEmpty())
                 throw new RequestException("Must provide collection parameter");
-            
+
             int id = rc.getParameter("id").toInt();
-            final JcNode c = new JcNode("c");
-            Database.query(rc.getLocal("db"), new IClause[]{
-            	MATCH.node(c).label("collection"),
-            	WHERE.valueOf(c.id()).EQUALS(id),
-            	DO.DETACH_DELETE(c)
-            });
-            
-            final JcNode entry = new JcNode("e");
-        	Database.query(rc.getLocal("db"), new IClause[]{
-                    MATCH.node(entry).label("entry"),
-                    WHERE.NOT().existsPattern(
-                            X.node().label("collection")
-                            .relation().type("CONTAINS")
-                            .node(entry)),
-                    DO.DETACH_DELETE(entry)
-                });
-            
-            
+            new DeleteCollectionEvent(id).execute();
             rc.getResponse().ok();
         });
 
@@ -129,39 +115,34 @@ public class Admin extends BackendRouter {
         		.relation().type("OWNER").node(coll).label("collection"),
         		RETURN.value(coll.property("name")).AS(cString)
         	});
-        	
+
             final List<String> found = res.resultOf(cString);
             String[] colls = new String[found.size()];
             found.toArray(colls);
             rc.status(200).json().send(colls);
-        	
+
         });
-        
+
         // POST api.serp.se/v1/admin/delete-user
         // email=...
         POST("/delete-user", (rc) -> {
         	if(rc.getParameter("email").isEmpty())
         		throw new RequestException("must provide an user email parameter");
 
-        	AccountSystem.deleteAccount(rc.getParameter("email").toString(),rc.getLocal("db"));
+        	String user = rc.getParameter("email").toString();
+            new DeleteAccountEvent(user).execute();
         	rc.getResponse().ok();
         });
-        
-        // POST api.serp.se/v1/admin/delete-entry 
+
+        // POST api.serp.se/v1/admin/delete-entry
         // entryId=...
         POST("/delete-entry", (rc) -> {
             if (rc.getParameter("entryId").isEmpty())
                 throw new RequestException("Must provide entry parameter");
-            
-            final JcNode e = new JcNode("e");
-        	int entry = rc.getParameter("entryId").toInt();
-        	Database.query(rc.getLocal("db"), new IClause[]{
-                 MATCH.node(e).label("entry"),
-                 WHERE.valueOf(e.id()).EQUALS(entry),
-                 DO.DETACH_DELETE(e)
-             });
-             rc.getResponse().ok();
 
+        	int entryId = rc.getParameter("entryId").toInt();
+        	new DeleteEntryEvent(entryId).execute();
+            rc.getResponse().ok();
         });
 
         // PUT api.serp.se/v1/admin/set-trust HTTP/1.1
@@ -170,11 +151,11 @@ public class Admin extends BackendRouter {
             String email = rc.getParameter("email").toString();
             String trust = rc.getParameter("trust").toString();
             int level = TrustLevel.fromString(trust);
-            
+
             if (level == TrustLevel.UNKNOWN){
             	throw new RequestException("Invalid trust level.");
             }
-            
+
             if (email == null)
                 throw new RequestException("Invalid email.");
 
@@ -191,7 +172,7 @@ public class Admin extends BackendRouter {
             final List<GrNode> everyone = res.resultOf(u);
             rc.json().send(Graph.User.fromList(everyone));
         });
-        
+
         GET("/collections", (rc) -> {
         	final JcNode c = new JcNode("c");
         	final String email = rc.getSession("email");
@@ -203,16 +184,17 @@ public class Admin extends BackendRouter {
                         .node(c)),
         		RETURN.value(c)
         	});
-        	
+
         	final List<GrNode> allColls = res.resultOf(c);
         	rc.json().send(Graph.Collection.fromList(allColls));
         });
-        
+
         GET("/{id}/is-collection-owner", (rc)->{
    		 rc.status(200).json().send(Collection.isOwner(rc));
        });
 
     }
 
-    public String getPrefix() { return "/v1/admin"; }
+    @Override
+	public String getPrefix() { return "/v1/admin"; }
 }
