@@ -45,7 +45,7 @@ public class TrustLevel {
     }
 
     /**
-     * Convert a string representation to int. 
+     * Convert a string representation to int.
      */
     public static int fromString(String repr) {
         switch (repr) {

@@ -16,7 +16,6 @@ import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
-import iot.jcypher.query.factories.clause.WITH;
 import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.values.JcBoolean;
 import iot.jcypher.query.values.JcNode;
@@ -30,6 +29,8 @@ import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
+import se.lth.cs.connect.events.DetachEntryEvent;
+import se.lth.cs.connect.events.LeaveCollectionEvent;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 
@@ -37,7 +38,8 @@ import se.lth.cs.connect.modules.Database;
  * Handles account related actions.
  */
 public class Collection extends BackendRouter {
-    public String getPrefix() { return "/v1/collection"; }
+    @Override
+	public String getPrefix() { return "/v1/collection"; }
 
     private String inviteTemplate;
     private String inviteNewUserTemplate;
@@ -55,7 +57,8 @@ public class Collection extends BackendRouter {
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
     }
 
-    protected void setup(PippoSettings conf) {
+    @Override
+	protected void setup(PippoSettings conf) {
 
         // POST api.serpconnect.cs.lth.se/v1/collection HTTP/1.1
         // name=blabla
@@ -84,26 +87,26 @@ public class Collection extends BackendRouter {
             rc.json().send(
             	"{ \"id\": " + res.resultOf(id).get(0) + " }");
         });
-        
+
         //id must be a string and the id must exist in the database.
         ALL("/{id}/.*", (rc) -> {
-        	
+
         	String ids = rc.getParameter("id").toString();
         	if (!StringUtils.isNumeric(ids)){
         		throw new RequestException("Invalid id");
         	}
         	int id = Integer.parseInt(ids);
         	JcNode coll = new JcNode("coll");
-        	
+
         	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                     MATCH.node(coll).label("collection"),
                     WHERE.valueOf(coll.id()).EQUALS(id),
                     NATIVE.cypher("RETURN true AS ok")
             });
-        	
+
         	if (res.resultOf(new JcBoolean("ok")).size() == 0)
         		throw new RequestException("id does not exist in database");
-                
+
             rc.next();
         });
 
@@ -140,10 +143,11 @@ public class Collection extends BackendRouter {
             JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node().label("user")
                     .relation(u).type("MEMBER_OF")
-                    .node(coll).label("collection")
+                    .node(coll).label("collection"),
+                WHERE.valueOf(coll.id()).EQUALS(id),
+                OPTIONAL_MATCH.node(coll)
                     .relation(e).type("CONTAINS")
                     .node().label("entry"),
-                WHERE.valueOf(coll.id()).EQUALS(id),
                 NATIVE.cypher("RETURN COUNT(DISTINCT u) AS users, COUNT(DISTINCT e) AS entries")
             });
 
@@ -200,7 +204,7 @@ public class Collection extends BackendRouter {
 			JcRelation rel = new JcRelation("rel");
 
 			handleInvitation(rc, "rejected");
-			
+
 			// Delete invitation
 			JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[] {
                 MATCH.node(user).label("user").property("email").value(email)
@@ -208,7 +212,7 @@ public class Collection extends BackendRouter {
                     .node(coll).label("collection"),
                 WHERE.valueOf(coll.id()).EQUALS(id),
                 DO.DELETE(rel),
-                NATIVE.cypher("RETURN TRUE AS ok") 
+                NATIVE.cypher("RETURN TRUE AS ok")
             });
 
 			if (res.resultOf(new JcBoolean("ok")).size() > 0)
@@ -270,51 +274,7 @@ public class Collection extends BackendRouter {
         POST("/{id}/leave", (rc) -> {
             String email = rc.getSession("email");
             int id = rc.getParameter("id").toInt();
-
-            JcNode user = new JcNode("user");
-            JcNode coll = new JcNode("coll");
-            JcRelation rel = new JcRelation("connection");
-
-            //if the leaver is the owner of the collection
-            //find all members of the collection
-            //check if any member have invited any user
-            //if so delete the relation
-            //delete the entire collection.
-            if(isOwner(rc)){
-            	Database.query(rc.getLocal("db"), new IClause[]{
-        			MATCH.node(user).label("user").property("email").value(email)
-                    	.relation()
-                        .node(coll).label("collection"),
-	                WHERE.valueOf(coll.id()).EQUALS(id),
-	                OPTIONAL_MATCH.node(coll).relation().type("OWNER")
-                        .node().label("user")
-                        .relation(rel).type("INVITER")
-                        .node().label("user"),
-                    DO.DELETE(rel),
-	                DO.DETACH_DELETE(coll)
-            	});
-            } else {
-	            Database.query(rc.getLocal("db"), new IClause[]{
-	                MATCH.node().label("user").property("email").value(email)
-	                    .relation(rel)
-	                    .node(coll).label("collection"),
-	                WHERE.valueOf(coll.id()).EQUALS(id),
-	                DO.DELETE(rel)
-	            });
-	            
-	            //Delete collections that have no members (or invites)
-	            Database.query(rc.getLocal("db"), new IClause[]{
-	                MATCH.node(coll).label("collection"),
-	                WHERE.valueOf(coll.id()).EQUALS(id).
-	                AND().NOT().existsPattern(
-	                        X.node().label("user")
-	                        .relation()
-	                        .node(coll)),
-	                DO.DETACH_DELETE(coll)
-	            });
-            }
-            removeEntriesWithNoCollection(rc);
-
+            new LeaveCollectionEvent(id, email).execute();
             rc.getResponse().ok();
         });
 
@@ -323,24 +283,7 @@ public class Collection extends BackendRouter {
         POST("/{id}/removeEntry", (rc) -> {
             int id = rc.getParameter("id").toInt();
             int entryId = rc.getParameter("entryId").toInt();
-
-            final JcNode entry = new JcNode("e");
-            final JcNode coll = new JcNode("c");
-            final JcRelation rel = new JcRelation("r");
-
-            // First, remove the relation to the current collection
-            Database.query(rc.getLocal("db"), new IClause[]{
-                MATCH.node(coll).label("collection")
-                    .relation(rel).type("CONTAINS")
-                    .node(entry).label("entry"),
-                WHERE.valueOf(coll.id()).EQUALS(id).AND().valueOf(entry.id()).EQUALS(entryId),
-                DO.DELETE(rel)
-            });
-            
-            //TODO: Optimize: Only remove the entry that was supposed to be deleted.
-            
-            removeEntriesWithNoCollection(rc);
-
+            new DetachEntryEvent(id, entryId).execute();
             rc.getResponse().ok();
         });
 
@@ -388,16 +331,16 @@ public class Collection extends BackendRouter {
         GET("/{id}/is-owner", (rc)->{
     		 rc.status(200).json().send(isOwner(rc));
         });
-        
+
         //must be logged in AND be member AND be owner of collection AND provide an email to proceed
         ALL("/{id}/.*", (rc) -> {
-        	if(!isOwner(rc)) 
+        	if(!isOwner(rc))
        		 	throw new RequestException(401, "You must be an owner of the collection");
         	if (rc.getParameter("email").isEmpty())
                 throw new RequestException("Invalid email");
             rc.next();
         });
-        
+
         // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
         // email=...
         POST("/{id}/kick", (rc) -> {
@@ -406,7 +349,7 @@ public class Collection extends BackendRouter {
         	 //don't allow the user to kick himself
     		 if(rc.getSession("email").toString().equals(rc.getParameter("email").toString()))
         		throw new RequestException(400, "Can't kick yourself, please use leave collection if you want to leave the collection");
-        	 	
+
         	 int id = rc.getParameter("id").toInt();
              JcNode user = new JcNode("user");
              JcNode coll = new JcNode("coll");
@@ -420,20 +363,20 @@ public class Collection extends BackendRouter {
                  DO.DELETE(rel),
                  RETURN.value(user)
              });
-          
+
              if(res.resultOf(user).isEmpty())
             	 throw new RequestException(404, email + " is not a member of collection " + id);
-              
-        	 rc.getResponse().ok();       
+
+        	 rc.getResponse().ok();
         });
-        
+
         // POST api.serpconnect.cs.lth.se/{id}/invite HTTP/1.1
         // email[0]=...&email[1]=
         POST("/{id}/invite", (rc) -> {
             int id = rc.getParameter("id").toInt();
             List<String> emails = rc.getParameter("email").toList(String.class);
             String inviter = rc.getSession("email");
-            
+
             for (String email : emails) {
                 JcNode user = new JcNode("user");
                 JcNode inviterNode = new JcNode("inviter");
@@ -446,11 +389,11 @@ public class Collection extends BackendRouter {
                         WHERE.valueOf(coll.id()).EQUALS(id),
                         NATIVE.cypher("RETURN TRUE AS ok")
                 }).resultOf(new JcBoolean("ok")).size() > 0;
-                
+
                 // Don't send new invites if already member
                 if(memberOf)
                     continue;
-                
+
                 JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                     MATCH.node(user).label("user").property("email").value(email),
                     RETURN.value(user)
@@ -467,17 +410,17 @@ public class Collection extends BackendRouter {
 
                 // Use MERGE so we don't end up with multiple invites per user
                 // keep track of who invited the user and to which collection
-                Database.query(rc.getLocal("db"), new IClause[] { 
+                Database.query(rc.getLocal("db"), new IClause[] {
                     MATCH.node(user).label("user").property("email").value(email),
-                    MATCH.node(coll).label("collection"), 
+                    MATCH.node(coll).label("collection"),
                     WHERE.valueOf(coll.id()).EQUALS(id),
                     MATCH.node(inviterNode).label("user").property("email").value(inviter),
                     MERGE.node(user).relation().out().type("INVITE").node(coll),
                     MERGE.node(user).relation().out().type("INVITER")
-                        .property("parentnode").value(id).node(inviterNode) 
+                        .property("parentnode").value(id).node(inviterNode)
                 });
 
-                String template = emptyUser ? inviteNewUserTemplate 
+                String template = emptyUser ? inviteNewUserTemplate
                                             : inviteTemplate;
                 template = template.replace("{frontend}", frontend);
 
@@ -487,13 +430,13 @@ public class Collection extends BackendRouter {
             rc.getResponse().ok();
         });
     }
-    
+
     public static boolean isOwner(RouteContext rc){
     	final int id = rc.getParameter("id").toInt();
     	final String email = rc.getSession("email");
     	final JcNode usr = new JcNode("u");
     	final JcNode coll = new JcNode("c");
-    	
+
     	//return true as ok if the logged in user is owner of the collection
     	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
              MATCH.node(usr).label("user").
@@ -503,10 +446,10 @@ public class Collection extends BackendRouter {
              WHERE.valueOf(coll.id()).EQUALS(id),
              NATIVE.cypher("RETURN true AS ok")
     	});
-    	
+
 		return res.resultOf(new JcBoolean("ok")).size()>0;
     }
-    
+
     private void removeEntriesWithNoCollection(RouteContext rc){
     	final JcNode entry = new JcNode("e");
     	Database.query(rc.getLocal("db"), new IClause[]{
@@ -523,10 +466,10 @@ public class Collection extends BackendRouter {
     private void handleInvitation(RouteContext rc, String action){
     	final String email = rc.getSession("email");
 		final int id = rc.getParameter("id").toInt();
-		
+
 		handleInvitation(rc.getLocal("db"),email,id,action,app);
     }
-    
+
 	//will reply an email to all users that invited this user which informs them
 	//of what action was taken.
 	public static void handleInvitation(IDBAccess db, String email, int id, String action, Connect app) {
@@ -537,19 +480,19 @@ public class Collection extends BackendRouter {
 		final JcString em = new JcString("em");
 		final JcString collName = new JcString("collName");
 		final JcNode coll = new JcNode("coll2");
-		
+
 		JcQueryResult inviters = Database.query(db, new IClause[] {
             MATCH.node(user).label("user").property("email").value(email)
                 .relation(rel).type("INVITER").node(inviter),
             WHERE.valueOf(rel.property("parentnode").toInt()).EQUALS(id),
-            DO.DELETE(rel), 
+            DO.DELETE(rel),
             RETURN.value(inviter.property("email")).AS(em)
 		});
-		
+
 		// Get the name of the collection.
-		final JcQueryResult collQuery = Database.query(db, new IClause[] { 
+		final JcQueryResult collQuery = Database.query(db, new IClause[] {
             MATCH.node(coll).label("collection"),
-			WHERE.valueOf(coll.id()).EQUALS(id), 
+			WHERE.valueOf(coll.id()).EQUALS(id),
             RETURN.value(coll.property("name")).AS(collName)
         });
 

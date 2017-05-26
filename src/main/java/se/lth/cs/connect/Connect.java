@@ -1,22 +1,20 @@
 package se.lth.cs.connect;
 
-import se.lth.cs.connect.routes.Account;
-import se.lth.cs.connect.routes.Admin;
-import se.lth.cs.connect.routes.Entry;
-import utils.CleanupUsers;
-import se.lth.cs.connect.routes.Collection;
-
+import ro.pippo.core.Application;
+import ro.pippo.core.ExceptionHandler;
+import ro.pippo.core.Pippo;
+import ro.pippo.core.PippoSettings;
+import ro.pippo.core.route.Route;
+import ro.pippo.core.route.RouteContext;
+import ro.pippo.core.route.Router;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.MailClient;
 import se.lth.cs.connect.modules.Mailman;
-
-import ro.pippo.core.Pippo;
-import ro.pippo.core.ExceptionHandler;
-import ro.pippo.core.PippoSettings;
-import ro.pippo.core.Application;
-import ro.pippo.core.route.Router;
-import ro.pippo.core.route.Route;
-import ro.pippo.core.route.RouteContext;
+import se.lth.cs.connect.routes.Account;
+import se.lth.cs.connect.routes.Admin;
+import se.lth.cs.connect.routes.Collection;
+import se.lth.cs.connect.routes.Entry;
+import utils.CleanupUsers;
 
 /**
  * Default addr and neo4j credentials are read from conf/application.properties
@@ -24,9 +22,9 @@ import ro.pippo.core.route.RouteContext;
 public class Connect extends Application {
 
 	private MailClient mailClient;
-	
+
 	public MailClient getMailClient() { return mailClient; }
-	
+
 	public void useMailClient(MailClient client) {
 		mailClient = client;
 		client.configure(getPippoSettings());
@@ -89,6 +87,7 @@ public class Connect extends Application {
 				rc.text().send(e.getMessage());
 			}
 		});
+
 	}
 
 	// For now, ignore the 'prefix' b/c it's hardcoded in each module (as
@@ -114,7 +113,7 @@ public class Connect extends Application {
 		Connect conn = new Connect();
 		Pippo pippo = new Pippo(conn);
 		pippo.start();
-		
+
 		CleanupUsers cl = new CleanupUsers(conn);
 		cl.everyTwelveHours();
 	}

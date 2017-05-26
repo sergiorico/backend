@@ -1,32 +1,23 @@
 package se.lth.cs.connect.modules;
 
-import se.lth.cs.connect.TrustLevel;
-
-import java.util.List;
-
 import java.security.SecureRandom;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 import com.lambdaworks.crypto.SCryptUtil;
 
-import iot.jcypher.database.IDBAccess;
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.graph.GrProperty;
-
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
-import iot.jcypher.query.values.JcNode;
-import iot.jcypher.query.values.JcRelation;
-import iot.jcypher.query.values.JcString;
-import ro.pippo.core.route.RouteContext;
-import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.CREATE;
-import iot.jcypher.query.factories.clause.RETURN;
-import iot.jcypher.query.factories.clause.SEPARATE;
-import iot.jcypher.query.factories.clause.WHERE;
-import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.factories.clause.DO;
+import iot.jcypher.query.factories.clause.MATCH;
+import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.values.JcNode;
+import iot.jcypher.query.values.JcString;
+import se.lth.cs.connect.TrustLevel;
 
 /**
  * An account must have a unique email.
@@ -133,21 +124,21 @@ public class AccountSystem {
     public static synchronized boolean createAccount(String email,
                                         String password, int trust) {
     	Account acc = findByEmail(email);
-    	
+
     	JcNode coll = new JcNode("c");
     	JcNode user = new JcNode("user");
-    	
+
     	ZonedDateTime currentTime = ZonedDateTime.now(ZoneOffset.UTC);
-    	
+
         // "Email already exists"
         if (acc != null){
         	//email is already registered
         	if(acc.trust!=TrustLevel.UNREGISTERED)
         		return false;
-        	
-        	//email isn't registered, merge existing mail with the new registration info 
+
+        	//email isn't registered, merge existing mail with the new registration info
         	acc.password =  SCryptUtil.scrypt(password, SCRYPT_N, SCRYPT_R, SCRYPT_P);
-        	
+
         	Database.query(Database.access(), new IClause[]{
 				MATCH.node(user).label("user")
 					.property("email").value(email),
@@ -157,16 +148,16 @@ public class AccountSystem {
 			});
         	return true;
         }
-            
+
         // Unless synchronized, email may or may not longer be unique
         acc = new Account(email,
             SCryptUtil.scrypt(password, SCRYPT_N, SCRYPT_R, SCRYPT_P), trust);
 
-        
+        // (u)-[:MEMBER_OF]->(c)-[:OWNER]->(u)
         Database.query(Database.access(), new IClause[]{
             CREATE.node(coll).label("collection")
                 .property("name").value("default"),
-            CREATE.node().label("user")
+            CREATE.node(user).label("user")
                 .property("email").value(email)
                 .property("password").value(acc.password)
                 .property("trust").value(trust)
@@ -174,74 +165,9 @@ public class AccountSystem {
                 .property("default").value(coll.id())
                 .relation().out().type("MEMBER_OF")
                 .node(coll)
-  
-                
+                .relation().out().type("OWNER").node(user)
         });
         return true;
-    }
-
-    /**
-     * Try and remove the user from the database. The user and all relations
-     * to entries will be deleted. Methods throws database exception on error.
-     */
-    public static boolean deleteAccount(String email, IDBAccess db) {
-        JcNode node = new JcNode("user");
-        JcNode coll = new JcNode("coll");
-        JcNode inviters = new JcNode("inviter");
-        JcRelation rel = new JcRelation("relation");
-        
-        //find all collection user is owner of
-        //from those collection go back to all owners <----------------------|
-        //check if any of the owners have outgoing invites <-----------------|
-        //delete invites													 |
-        //delete collection and all relations								 |
-        //-------------------------------------------------------------------|
-        //these might become obsolete later if only one owner is allowed-----|
-       Database.query(db, new IClause[]{
-			MATCH.node().label("user").property("email").value(email)
-            	.relation().type("OWNER")
-            	.node(coll).label("collection"),
-        	SEPARATE.nextClause(),
-            MATCH.node(coll)
-            	.relation().type("OWNER")
-            	.node(inviters).label("user"),
-            MATCH.node(inviters).relation(rel).type("INVITER").node().label("user"),
-            DO.DELETE(rel),
-            DO.DETACH_DELETE(coll)
-    	});
-        
-
-      
-    	//delete the user and all relations
-        Database.query(db, new IClause[]{
-            MATCH.node(node).label("user").property("email").value(email),
-            DO.DETACH_DELETE(node)
-        });
-
-        removeCollectionWithNoUsers(db);
-        return true;
-    }
-    
-    private static void removeCollectionWithNoUsers(IDBAccess db){
-    	final JcNode coll = new JcNode("c");
-    	Database.query(db, new IClause[]{
-                MATCH.node(coll).label("collection"),
-                WHERE.NOT().existsPattern(
-                        X.node().label("user")
-                        .relation().type("MEMBER_OF")
-                        .node(coll)),
-                DO.DETACH_DELETE(coll)
-            });
-    	
-    	final JcNode entry = new JcNode("e");
-    	Database.query(db, new IClause[]{
-                MATCH.node(entry).label("entry"),
-                WHERE.NOT().existsPattern(
-                        X.node().label("collection")
-                        .relation().type("CONTAINS")
-                        .node(entry)),
-                DO.DETACH_DELETE(entry)
-            });
     }
 
     /**

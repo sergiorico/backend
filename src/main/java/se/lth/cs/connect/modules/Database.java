@@ -1,24 +1,20 @@
 package se.lth.cs.connect.modules;
 
-import se.lth.cs.connect.DatabaseException;
-
 import java.util.List;
 import java.util.Properties;
 
-import ro.pippo.core.PippoSettings;
-
+import iot.jcypher.database.DBAccessFactory;
+import iot.jcypher.database.DBProperties;
+import iot.jcypher.database.DBType;
 // required for accessing the database
 import iot.jcypher.database.IDBAccess;
-import iot.jcypher.database.DBAccessFactory;
-import iot.jcypher.database.DBType;
-import iot.jcypher.database.DBProperties;
-
 // required for executing queries and handling errors
 import iot.jcypher.query.JcQuery;
 import iot.jcypher.query.JcQueryResult;
-
 import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.result.JcError;
+import ro.pippo.core.PippoSettings;
+import se.lth.cs.connect.DatabaseException;
 
 public class Database {
     private static String USERNAME, PASSWORD, HOST;
@@ -33,7 +29,8 @@ public class Database {
             sb = new StringBuilder();
         }
 
-        public String toString() {
+        @Override
+		public String toString() {
             return sb.toString();
         }
 

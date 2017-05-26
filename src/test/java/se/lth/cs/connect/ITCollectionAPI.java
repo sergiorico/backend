@@ -38,10 +38,12 @@ public class ITCollectionAPI extends APITest {
         return Long.parseLong(id);
     }
     public static long submitEntry(SessionFilter user, long collectionId) {
-         //Add entry. json String can be whatever as long as it is a valid json String for an entry.
-		String json = "{ \"entryType\": \"challenge\", " + 
+        // Add entry. json String can be whatever as long as it is a valid json String for an entry.
+        String facet = APITest.getRandomString();
+
+	    String json = "{ \"entryType\": \"challenge\", " + 
             "\"description\": \"test\", " +
-            "\"serpClassification\": {}, " +
+            "\"serpClassification\": { \"improving\": [\"" + facet + "\"] }, " +
             "\"collection\": " + collectionId + 
         " }";
         return submitEntry(user, collectionId, json);

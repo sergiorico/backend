@@ -10,12 +10,12 @@ public class URLParser {
 	                + "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
 	                + "[\\p{Alnum}.,%_=?&#\\-+()\\[\\]\\*$~@!:/{};']*)",
 	        Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
-	
+
 	/**
 	 * @return RFC 3986 based URL matching pattern
 	 */
 	public static Pattern getPattern() { return urlPattern; }
-	
+
 	/**
 	 * Extract the first URL from the given string.
 	 * @return "" if no url is found, url otherwise
