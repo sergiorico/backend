@@ -7,10 +7,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import iot.jcypher.database.IDBAccess;
 import iot.jcypher.graph.GrNode;
+import iot.jcypher.graph.GrProperty;
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.factories.clause.CREATE;
 import iot.jcypher.query.factories.clause.DO;
+import iot.jcypher.query.factories.clause.FOR_EACH;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.MERGE;
 import iot.jcypher.query.factories.clause.NATIVE;
@@ -23,6 +25,7 @@ import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
 import iot.jcypher.query.values.JcString;
+import iot.jcypher.query.values.JcValue;
 import ro.pippo.core.Messages;
 import ro.pippo.core.PippoSettings;
 import ro.pippo.core.route.RouteContext;
@@ -319,15 +322,63 @@ public class Collection extends BackendRouter {
 
             final JcNode entry = new JcNode("e");
             final JcNode coll = new JcNode("c");
+            final JcNode n = new JcNode("n");
+            final List<GrProperty> props;
+            
+            //cypher got map which would make this trivial, also unwind or simply setting new node = old works in 
+            //normal cypher but can't get it to work/doesn't exist in jcypher
+            
+            //tried to use foreach on all properties but didn't get it to work
+//            Database.query(rc.getLocal("db"), new IClause[]{
+//                    MATCH.node(coll).label("collection"),
+//                    WHERE.valueOf(coll.id()).EQUALS(id),
+//                    MATCH.node(entry).label("entry"),
+//                    WHERE.valueOf(entry.id()).EQUALS(entryId),
+//                    CREATE.node(n).label("entry"),
+//                    FOR_EACH.element(n.property("")).IN(entry.asCollection()).DO().SET(n.property(p.toString())).to(""),
+//                   // MERGE.node(coll).relation().out().type("CONTAINS").node(entry)
+//                });
+            
+            //find all properties of an entry
+            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[] {
+                	MATCH.node(coll).label("collection"),
+                	WHERE.valueOf(coll.id()).EQUALS(id),
+                	MATCH.node(entry).label("entry"),
+                	WHERE.valueOf(entry.id()).EQUALS(entryId),
+                	RETURN.value(entry)
+                	
+                });
+            
+            //create new node, clone all properties,link it to the collection
+            System.out.println(res.resultOf(entry).size());
+            props = res.resultOf(entry).get(0).getProperties();
+            System.out.println(props.size());
+            IClause[] query = new IClause[props.size()+5+1];
+            int i =5;
+            query[0] = MATCH.node(coll).label("collection");
+            query[1] = WHERE.valueOf(coll.id()).EQUALS(id);
+            query[2] = MATCH.node(entry).label("entry");
+            query[3] = WHERE.valueOf(entry.id()).EQUALS(entryId);
+            query[4] = CREATE.node(n).label("entry");
+            for(GrProperty p : props){
+            	query[i] = DO.SET(n.property(p.getName())).to(p.getValue());
+            	i++;
+            }
+            query[i] = CREATE.node(coll).relation().out().type("CONTAINS").node(n);
+            
+            Database.query(rc.getLocal("db"), query);
+            
 
+            //original query
             // Connect entry and collection
-            Database.query(rc.getLocal("db"), new IClause[]{
-                MATCH.node(coll).label("collection"),
-                WHERE.valueOf(coll.id()).EQUALS(id),
-                MATCH.node(entry).label("entry"),
-                WHERE.valueOf(entry.id()).EQUALS(entryId),
-                MERGE.node(coll).relation().out().type("CONTAINS").node(entry)
-            });
+//            Database.query(rc.getLocal("db"), new IClause[]{
+//        		
+//                MATCH.node(coll).label("collection"),
+//                WHERE.valueOf(coll.id()).EQUALS(id),
+//                MATCH.node(entry).label("entry"),
+//                WHERE.valueOf(entry.id()).EQUALS(entryId),
+//                MERGE.node(coll).relation().out().type("CONTAINS").node(entry)
+//            });
 
             rc.getResponse().ok();
         });
