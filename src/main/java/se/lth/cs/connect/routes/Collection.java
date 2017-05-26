@@ -1,5 +1,6 @@
 package se.lth.cs.connect.routes;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -33,6 +34,11 @@ import se.lth.cs.connect.events.DetachEntryEvent;
 import se.lth.cs.connect.events.LeaveCollectionEvent;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.TaxonomyDB;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Handles account related actions.
@@ -53,10 +59,10 @@ public class Collection extends BackendRouter {
         inviteTemplate = msg.get("pippo.collectioninvite", "en");
         inviteNewUserTemplate = msg.get("pippo.collectioninvitenewuser", "en");
 		inviteActionTemplate = msg.get("pippo.collectioninviteaction", "en");
-
+		
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
     }
-
+     
     @Override
 	protected void setup(PippoSettings conf) {
 
@@ -80,12 +86,20 @@ public class Collection extends BackendRouter {
                 MATCH.node(usr).label("user").property("email").value(email),
                 CREATE.node(usr).relation().type("MEMBER_OF").out()
                     .node(coll).label("collection")
-                    .property("name").value(name).relation().type("OWNER").out().node(usr),
-                RETURN.value(coll.id()).AS(id)
+                    .property("name").value(name)
+                    .relation().type("OWNER").out().node(usr),
+                CREATE.node(coll)
+        			.relation().type("TAXONOMY").out()
+        			.node().property("version").value(0),
+                    RETURN.value(coll.id()).AS(id)
             });
+            
+            int collectionId = res.resultOf(id).get(0).intValue();
+            TaxonomyDB.init(collectionId);
 
             rc.json().send(
-            	"{ \"id\": " + res.resultOf(id).get(0) + " }");
+            	"{ \"id\": " + collectionId + " }");
+            
         });
 
         //id must be a string and the id must exist in the database.
@@ -129,6 +143,16 @@ public class Collection extends BackendRouter {
             });
 
             rc.json().send(new Graph(res.resultOf(node), res.resultOf(rel)));
+        });
+        
+        // { version: number, taxonomy: [...] } 
+        GET("/{id}/taxonomy", (rc) -> {
+        	int id = rc.getParameter("id").toInt();
+        	TaxonomyDB.TaxonomySnapshot read = TaxonomyDB.read(id);
+        	
+        	rc.send("{ \"version\": <VERSION>, \"taxonomy\": <TAXONOMY> }"
+            		.replace("<VERSION>", read.version + "")
+            		.replace("<TAXONOMY>", read.taxonomy));
         });
 
         // GET api.serpconnect.cs.lth.se/{id}/stats HTTP/1.1
@@ -429,6 +453,39 @@ public class Collection extends BackendRouter {
 
             rc.getResponse().ok();
         });
+        
+        
+        // { version: number, taxonomy: [...] }
+        PUT("/{id}/taxonomy", (rc) -> {
+        	final int id = rc.getParameter("id").toInt();
+            final ObjectMapper mapper = new ObjectMapper(); 
+            JsonNode req;
+
+        	try {
+				req = mapper.readTree(rc.getRequest().getBody());                
+			} catch (JsonProcessingException e) {
+				throw new RequestException("Illegal JSON");
+			} catch (IOException e) {
+				throw new RequestException("Illegal JSON");
+			}
+            long version = req.get("version").asLong();
+            long current = TaxonomyDB.version(id);
+            
+            if (version < current) {
+                throw new RequestException("Out of date version");
+            }
+            
+			try {
+				final String taxonomy = String.valueOf(mapper.writeValueAsBytes(req.get("taxonomy")));
+				TaxonomyDB.increment(id);
+				TaxonomyDB.write(id, taxonomy);
+			} catch (JsonProcessingException e) {
+				throw new RequestException("Sneaky illegal JSON");
+			}
+            
+    	    rc.getResponse().ok();
+        });
+
     }
 
     public static boolean isOwner(RouteContext rc){
@@ -448,18 +505,6 @@ public class Collection extends BackendRouter {
     	});
 
 		return res.resultOf(new JcBoolean("ok")).size()>0;
-    }
-
-    private void removeEntriesWithNoCollection(RouteContext rc){
-    	final JcNode entry = new JcNode("e");
-    	Database.query(rc.getLocal("db"), new IClause[]{
-                MATCH.node(entry).label("entry"),
-                WHERE.NOT().existsPattern(
-                        X.node().label("collection")
-                        .relation().type("CONTAINS")
-                        .node(entry)),
-                DO.DETACH_DELETE(entry)
-            });
     }
 
     //Calls static handleInvitation. Exists to make the code cleaner for functions in this class.
