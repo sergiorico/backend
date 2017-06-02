@@ -310,6 +310,7 @@ public class Collection extends BackendRouter {
         POST("/{id}/removeEntry", (rc) -> {
             int id = rc.getParameter("id").toInt();
             int entryId = rc.getParameter("entryId").toInt();
+            // TODO: Remove from collection (DETACH) will become delete
             new DetachEntryEvent(id, entryId).execute();
             rc.getResponse().ok();
         });
@@ -339,34 +340,22 @@ public class Collection extends BackendRouter {
 //                   // MERGE.node(coll).relation().out().type("CONTAINS").node(entry)
 //                });
             
-            //find all properties of an entry
-            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[] {
-                	MATCH.node(coll).label("collection"),
-                	WHERE.valueOf(coll.id()).EQUALS(id),
-                	MATCH.node(entry).label("entry"),
-                	WHERE.valueOf(entry.id()).EQUALS(entryId),
-                	RETURN.value(entry)
-                	
-                });
+            JcQueryResult rr = Database.query(rc.getLocal("db"), new IClause[]{
+            	MATCH.node(entry).label("entry"),
+            	WHERE.valueOf(entry.id()).EQUALS(entryId),
+            	RETURN.value(entry)
+            });
             
-            //create new node, clone all properties,link it to the collection
-            System.out.println(res.resultOf(entry).size());
-            props = res.resultOf(entry).get(0).getProperties();
-            System.out.println(props.size());
-            IClause[] query = new IClause[props.size()+5+1];
-            int i =5;
-            query[0] = MATCH.node(coll).label("collection");
-            query[1] = WHERE.valueOf(coll.id()).EQUALS(id);
-            query[2] = MATCH.node(entry).label("entry");
-            query[3] = WHERE.valueOf(entry.id()).EQUALS(entryId);
-            query[4] = CREATE.node(n).label("entry");
-            for(GrProperty p : props){
-            	query[i] = DO.SET(n.property(p.getName())).to(p.getValue());
-            	i++;
-            }
-            query[i] = CREATE.node(coll).relation().out().type("CONTAINS").node(n);
+            Graph.Node graphNode = new Graph.Node(rr.resultOf(entry).get(0));
             
-            Database.query(rc.getLocal("db"), query);
+            Database.query(rc.getLocal("db"), new IClause[]{
+            	MATCH.node(coll).label("collection"),
+            	WHERE.valueOf(coll.id()).EQUALS(id),
+        		graphNode.create(entry),
+        		CREATE.node(entry)
+        			.relation().type("CONTAINS").out()
+        			.node(coll)
+            });
             
 
             //original query
