@@ -1,9 +1,15 @@
 package se.lth.cs.connect.routes;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import iot.jcypher.database.IDBAccess;
 import iot.jcypher.graph.GrNode;
@@ -12,20 +18,17 @@ import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.factories.clause.CREATE;
 import iot.jcypher.query.factories.clause.DO;
-import iot.jcypher.query.factories.clause.FOR_EACH;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.MERGE;
 import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
-import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.values.JcBoolean;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
 import iot.jcypher.query.values.JcString;
-import iot.jcypher.query.values.JcValue;
 import ro.pippo.core.Messages;
 import ro.pippo.core.PippoSettings;
 import ro.pippo.core.route.RouteContext;
@@ -38,10 +41,6 @@ import se.lth.cs.connect.events.LeaveCollectionEvent;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.TaxonomyDB;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Handles account related actions.
@@ -323,8 +322,10 @@ public class Collection extends BackendRouter {
 
             final JcNode entry = new JcNode("e");
             final JcNode coll = new JcNode("c");
-            final JcNode n = new JcNode("n");
-            final List<GrProperty> props;
+            final JcNode entity = new JcNode("x");
+            final JcRelation facet = new JcRelation("f");
+            final JcNumber entityId = new JcNumber("d");
+            final JcString facetType = new JcString("t");
             
             //cypher got map which would make this trivial, also unwind or simply setting new node = old works in 
             //normal cypher but can't get it to work/doesn't exist in jcypher
@@ -341,21 +342,39 @@ public class Collection extends BackendRouter {
 //                });
             
             JcQueryResult rr = Database.query(rc.getLocal("db"), new IClause[]{
-            	MATCH.node(entry).label("entry"),
+            	MATCH.node(entry).label("entry")
+            		.relation(facet)
+            		.node(entity).label("facet"),
             	WHERE.valueOf(entry.id()).EQUALS(entryId),
-            	RETURN.value(entry)
+            	RETURN.value(entry).AS(entry),
+            	RETURN.value(facet.type()).AS(facetType),
+            	RETURN.value(entity.id()).AS(entityId)
             });
             
             Graph.Node graphNode = new Graph.Node(rr.resultOf(entry).get(0));
+            List<BigDecimal> entities = rr.resultOf(entityId);
+            List<String> facets = rr.resultOf(facetType);
             
-            Database.query(rc.getLocal("db"), new IClause[]{
+            JcQueryResult cqr = Database.query(rc.getLocal("db"), new IClause[]{
             	MATCH.node(coll).label("collection"),
             	WHERE.valueOf(coll.id()).EQUALS(id),
         		graphNode.create(entry),
         		CREATE.node(entry)
         			.relation().type("CONTAINS").out()
-        			.node(coll)
+        			.node(coll),
+        		RETURN.value(entry.id()).AS(entityId)
             });
+            BigDecimal newEntryId = cqr.resultOf(entityId).get(0);
+            
+            for (int i = 0; i < facets.size(); i++) {
+            	Database.query(rc.getLocal("db"), new IClause[]{
+            		MATCH.node(entry).label("entry"),
+            		MATCH.node(entity).label("facet"),
+            		WHERE.valueOf(entry.id()).EQUALS(newEntryId)
+            			.AND().valueOf(entity.id()).EQUALS(entities.get(i)),
+            		CREATE.node(entry).relation().type(facets.get(i)).out().node(entity)
+            	});
+            }
             
 
             //original query
