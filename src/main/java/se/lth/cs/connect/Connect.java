@@ -10,6 +10,7 @@ import ro.pippo.core.route.Router;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.MailClient;
 import se.lth.cs.connect.modules.Mailman;
+import se.lth.cs.connect.modules.TaxonomyDB;
 import se.lth.cs.connect.routes.Account;
 import se.lth.cs.connect.routes.Admin;
 import se.lth.cs.connect.routes.Collection;
@@ -35,6 +36,7 @@ public class Connect extends Application {
 		PippoSettings conf = getPippoSettings();
 
 		Database.configure(conf);
+		TaxonomyDB.configure(conf);
 
 		// Use the ordinary mailman by default
 		useMailClient(new Mailman());
