@@ -22,8 +22,11 @@ import iot.jcypher.query.factories.clause.MERGE;
 import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.factories.clause.SEPARATE;
 import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.factories.xpression.C;
 import iot.jcypher.query.values.JcBoolean;
+import iot.jcypher.query.values.JcCollection;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
@@ -43,6 +46,7 @@ import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.TaxonomyDB;
 import se.lth.cs.connect.modules.TaxonomyDB.Facet;
 import se.lth.cs.connect.modules.TaxonomyDB.Taxonomy;
+import se.lth.cs.connect.routes.Entry.TaxonomyFacet;
 
 /**
  * Handles account related actions.
@@ -291,6 +295,36 @@ public class Collection extends BackendRouter {
                 throw new RequestException(403, "You are not a member of that collection");
 
             rc.next();
+        });
+        
+        // GET /{id}/entities --> [{facet:'EXECUTION',text:[samples]}, ..., {}]
+        GET("/{id}/entities", (rc) -> {
+            // Dragon city
+        	final long id = rc.getParameter("id").toLong();
+        	final JcNode collection = new JcNode("c");
+        	final JcNode entity = new JcNode("e");
+        	final JcRelation facet = new JcRelation("ff");
+        	final JcString facetType = new JcString("rel");
+
+        	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+        		MATCH.node(collection)
+            		.relation().type("CONTAINS")
+            		.node().label("entry")
+            		.relation(facet)
+            		.node(entity).label("facet"),
+            	WHERE.valueOf(collection.id()).EQUALS(id),
+            	NATIVE.cypher("RETURN COLLECT(DISTINCT e.text) AS text, type(ff) as rel"),
+            	NATIVE.cypher("ORDER BY type(ff)")
+            });
+
+            List<List<?>> auto = res.resultOf(new JcCollection("text"));
+            List<String> rel = res.resultOf(facetType);
+
+            TaxonomyFacet[] facets = new TaxonomyFacet[rel.size()];
+            for (int i = 0; i < facets.length; i++)
+                facets[i] = new TaxonomyFacet(rel.get(i), auto.get(i));
+
+            rc.json().send(facets);
         });
 
         // POST api.serpconnect.cs.lth.se/{id}/leave HTTP/1.1

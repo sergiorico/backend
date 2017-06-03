@@ -162,6 +162,7 @@ public class Entry extends BackendRouter {
         	gg.date = date;
         	gg.hash = hash();
         	gg.description = description;
+        	gg.type = entryType;
         	
         	return gg.create(node);
         }
