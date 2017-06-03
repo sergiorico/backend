@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import iot.jcypher.database.IDBAccess;
 import iot.jcypher.graph.GrNode;
-import iot.jcypher.graph.GrProperty;
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.factories.clause.CREATE;
@@ -36,11 +35,14 @@ import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
+import se.lth.cs.connect.events.DeleteEntryEvent;
 import se.lth.cs.connect.events.DetachEntryEvent;
 import se.lth.cs.connect.events.LeaveCollectionEvent;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.TaxonomyDB;
+import se.lth.cs.connect.modules.TaxonomyDB.Facet;
+import se.lth.cs.connect.modules.TaxonomyDB.Taxonomy;
 
 /**
  * Handles account related actions.
@@ -97,7 +99,7 @@ public class Collection extends BackendRouter {
             });
             
             int collectionId = res.resultOf(id).get(0).intValue();
-            TaxonomyDB.init(collectionId);
+            TaxonomyDB.update(collectionId, "[]");
 
             rc.json().send(
             	"{ \"id\": " + collectionId + " }");
@@ -152,7 +154,7 @@ public class Collection extends BackendRouter {
         	int id = rc.getParameter("id").toInt();
         	TaxonomyDB.TaxonomySnapshot read = TaxonomyDB.read(id);
         	
-        	rc.send("{ \"version\": <VERSION>, \"taxonomy\": <TAXONOMY> }"
+        	rc.json().send("{ \"version\": <VERSION>, \"taxonomy\": <TAXONOMY> }"
             		.replace("<VERSION>", read.version + "")
             		.replace("<TAXONOMY>", read.taxonomy));
         });
@@ -277,12 +279,12 @@ public class Collection extends BackendRouter {
 
         // Must be logged in AND member of collection to proceed
         ALL("/{id}/.*", (rc) -> {
-            String email = rc.getSession("email");
-            int id = rc.getParameter("id").toInt();
+            final String email = rc.getSession("email");
+            final int id = rc.getParameter("id").toInt();
 
-            JcNode coll = new JcNode("coll");
+            final JcNode coll = new JcNode("coll");
 
-            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+            final JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node().label("user").property("email").value(email)
                     .relation().out().type("MEMBER_OF")
                     .node(coll).label("collection"),
@@ -298,8 +300,8 @@ public class Collection extends BackendRouter {
 
         // POST api.serpconnect.cs.lth.se/{id}/leave HTTP/1.1
         POST("/{id}/leave", (rc) -> {
-            String email = rc.getSession("email");
-            int id = rc.getParameter("id").toInt();
+            final String email = rc.getSession("email");
+            final int id = rc.getParameter("id").toInt();
             new LeaveCollectionEvent(id, email).execute();
             rc.getResponse().ok();
         });
@@ -307,18 +309,21 @@ public class Collection extends BackendRouter {
         // POST api.serpconnect.cs.lth.se/{id}/removeEntry HTTP/1.1
         // entryId=...
         POST("/{id}/removeEntry", (rc) -> {
-            int id = rc.getParameter("id").toInt();
-            int entryId = rc.getParameter("entryId").toInt();
-            // TODO: Remove from collection (DETACH) will become delete
-            new DetachEntryEvent(id, entryId).execute();
+            if (rc.getParameter("entryId").isEmpty())
+            	throw new RequestException("Must provide entryId");
+            
+            new DeleteEntryEvent(rc.getParameter("entryId").toInt()).execute();
             rc.getResponse().ok();
         });
 
-        // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
+        // POST api.serpconnect.cs.lth.se/{id}/addEntry HTTP/1.1
         // entryId=...
         POST("/{id}/addEntry", (rc) -> {
-            int id = rc.getParameter("id").toInt();
-            int entryId = rc.getParameter("entryId").toInt();
+            final int id = rc.getParameter("id").toInt();
+            if (rc.getParameter("entryId").isEmpty())
+            	throw new RequestException("Must provide entryId");
+            
+            final int entryId = rc.getParameter("entryId").toInt();
 
             final JcNode entry = new JcNode("e");
             final JcNode coll = new JcNode("c");
@@ -327,21 +332,7 @@ public class Collection extends BackendRouter {
             final JcNumber entityId = new JcNumber("d");
             final JcString facetType = new JcString("t");
             
-            //cypher got map which would make this trivial, also unwind or simply setting new node = old works in 
-            //normal cypher but can't get it to work/doesn't exist in jcypher
-            
-            //tried to use foreach on all properties but didn't get it to work
-//            Database.query(rc.getLocal("db"), new IClause[]{
-//                    MATCH.node(coll).label("collection"),
-//                    WHERE.valueOf(coll.id()).EQUALS(id),
-//                    MATCH.node(entry).label("entry"),
-//                    WHERE.valueOf(entry.id()).EQUALS(entryId),
-//                    CREATE.node(n).label("entry"),
-//                    FOR_EACH.element(n.property("")).IN(entry.asCollection()).DO().SET(n.property(p.toString())).to(""),
-//                   // MERGE.node(coll).relation().out().type("CONTAINS").node(entry)
-//                });
-            
-            JcQueryResult rr = Database.query(rc.getLocal("db"), new IClause[]{
+            final JcQueryResult rr = Database.query(rc.getLocal("db"), new IClause[]{
             	MATCH.node(entry).label("entry")
             		.relation(facet)
             		.node(entity).label("facet"),
@@ -351,11 +342,9 @@ public class Collection extends BackendRouter {
             	RETURN.value(entity.id()).AS(entityId)
             });
             
-            Graph.Node graphNode = new Graph.Node(rr.resultOf(entry).get(0));
-            List<BigDecimal> entities = rr.resultOf(entityId);
-            List<String> facets = rr.resultOf(facetType);
+            final Graph.Node graphNode = new Graph.Node(rr.resultOf(entry).get(0));
             
-            JcQueryResult cqr = Database.query(rc.getLocal("db"), new IClause[]{
+            final JcQueryResult cqr = Database.query(rc.getLocal("db"), new IClause[]{
             	MATCH.node(coll).label("collection"),
             	WHERE.valueOf(coll.id()).EQUALS(id),
         		graphNode.create(entry),
@@ -364,30 +353,34 @@ public class Collection extends BackendRouter {
         			.node(coll),
         		RETURN.value(entry.id()).AS(entityId)
             });
-            BigDecimal newEntryId = cqr.resultOf(entityId).get(0);
+
+            // Only copy classification relations if they exist in the
+            // extended or default taxonomy.
+            ArrayList<String> taxonomy = new ArrayList<String>();
+            for (Facet f : TaxonomyDB.SERP().facets)
+            	taxonomy.add(f.id);
             
+        	for (Facet f : TaxonomyDB.taxonomyOf(id).facets)
+        		taxonomy.add(f.id);
+            
+        	final BigDecimal newEntryId = cqr.resultOf(entityId).get(0);
+        	final List<String> facets = rr.resultOf(facetType);
+        	final List<BigDecimal> entities = rr.resultOf(entityId);
             for (int i = 0; i < facets.size(); i++) {
+            	final String type = facets.get(i);
+            	
+            	if (!taxonomy.contains(type))
+            		continue;
+            	
             	Database.query(rc.getLocal("db"), new IClause[]{
             		MATCH.node(entry).label("entry"),
             		MATCH.node(entity).label("facet"),
             		WHERE.valueOf(entry.id()).EQUALS(newEntryId)
             			.AND().valueOf(entity.id()).EQUALS(entities.get(i)),
-            		CREATE.node(entry).relation().type(facets.get(i)).out().node(entity)
+            		CREATE.node(entry).relation().type(type).out().node(entity)
             	});
             }
             
-
-            //original query
-            // Connect entry and collection
-//            Database.query(rc.getLocal("db"), new IClause[]{
-//        		
-//                MATCH.node(coll).label("collection"),
-//                WHERE.valueOf(coll.id()).EQUALS(id),
-//                MATCH.node(entry).label("entry"),
-//                WHERE.valueOf(entry.id()).EQUALS(entryId),
-//                MERGE.node(coll).relation().out().type("CONTAINS").node(entry)
-//            });
-
             rc.getResponse().ok();
         });
 
@@ -536,8 +529,7 @@ public class Collection extends BackendRouter {
             
 			try {
 				final String taxonomy = String.valueOf(mapper.writeValueAsBytes(req.get("taxonomy")));
-				TaxonomyDB.increment(id);
-				TaxonomyDB.write(id, taxonomy);
+				TaxonomyDB.update(id, taxonomy);
 			} catch (JsonProcessingException e) {
 				throw new RequestException("Sneaky illegal JSON");
 			}

@@ -9,9 +9,10 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
-import iot.jcypher.query.factories.clause.CREATE;
 import iot.jcypher.query.factories.clause.DO;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
@@ -19,7 +20,6 @@ import iot.jcypher.query.factories.clause.WHERE;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import ro.pippo.core.PippoSettings;
-import ro.pippo.core.route.RouteContext;
 import se.lth.cs.connect.RequestException;
 
 
@@ -28,23 +28,22 @@ import se.lth.cs.connect.RequestException;
 */
 public class TaxonomyDB {
 	static String dbPath;
-	static String baseTaxonomy;
+	static String serpPath;
+	static Taxonomy SERP_TAXONOMY;
     
     public static void configure(PippoSettings props) {
-        dbPath = props.getString("connect.taxonomy.txdb", "~/.connect/txdb");
-    }
-
-    public static String getPath(int collectionId) {
-        return dbPath + "/" + "c-" + collectionId + ".json";
+        dbPath = props.getString("connect.taxonomy.txdb", "./txdb");
         
-
+        serpPath = props.getString("connect.taxonomy.serp", "./txdb/serp.json");
+        SERP_TAXONOMY = taxonomyOf(readTaxonomyFile(new File(serpPath)));
     }
 
-    private static String readTaxonomyFile(int collectionId) {
-        final String txPath = getPath(collectionId);
-        final File file = new File(txPath);
-
-        try {
+    public static String getPath(long collectionId) {
+        return dbPath + "/" + "c-" + collectionId + ".json";
+    }
+    
+    private static String readTaxonomyFile(File file) {
+    	try {
         	char[] data = new char[(int) file.length()];
         	final BufferedReader reader = new BufferedReader(new FileReader(file));
         	reader.read(data);
@@ -54,9 +53,10 @@ public class TaxonomyDB {
             throw new RequestException("Error writing taxonomy to file");
         }
     }
-    
-    public static void init(int collectionId) {
-    	write(collectionId, "[]");
+
+    private static String readCollectionTaxonomy(long collectionId) {
+        final String txPath = getPath(collectionId);
+        return readTaxonomyFile(new File(txPath));
     }
     
     public static class TaxonomySnapshot {
@@ -69,7 +69,14 @@ public class TaxonomyDB {
     	}
     }
     
-    public static long version(int collectionId) {
+    public static class Facet {
+    	public String name, id, parent;
+    }
+    public static class Taxonomy {
+    	public List<Facet> facets;
+    }
+    
+    public static long version(long collectionId) {
     	JcNode collection = new JcNode("c");
         JcNode taxonomy = new JcNode("t");
     	JcNumber version = new JcNumber("v");
@@ -86,29 +93,43 @@ public class TaxonomyDB {
     	return res.resultOf(version).get(0).longValue();
     }
     
-    public static void increment(int collectionId) {
-    	JcNode collection = new JcNode("c");
-        JcNode taxonomy = new JcNode("t");
-    	
-    	Database.query(Database.access(), new IClause[]{
-    		MATCH.node(collection).label("collection")
-    			.relation().type("TAXONOMY")
-    			.node(taxonomy),
-    		WHERE.valueOf(collection.id()).EQUALS(collectionId),
-    		DO.SET(taxonomy.property("version"))
-    			.to(taxonomy.property("version").toInt().plus(1))
-    	});
+    private static Taxonomy taxonomyOf(String tx) {
+    	try {
+    		return (new ObjectMapper()).readValue(tx, Taxonomy.class);
+    	} catch (Exception e) {
+    		System.err.println("TaxonomyDB.taxonomyOf: " + e.getMessage());
+    		return null;
+    	}
     }
     
-    public static TaxonomySnapshot read(int collectionId) {
+    public static Taxonomy taxonomyOf(long collectionId) {
+    	final String tx = readCollectionTaxonomy(collectionId);
+    	return taxonomyOf(tx);
+    }
+    
+    
+    public static TaxonomySnapshot read(long collectionId) {
     	long taxonomyVersion = version(collectionId);
-    	String taxonomyExt = readTaxonomyFile(collectionId);
+    	String taxonomyExt = readCollectionTaxonomy(collectionId);
     	
     	return new TaxonomySnapshot(taxonomyVersion, taxonomyExt);
     }
     
+    private static void increment(long collectionId) {
+    	JcNode collection = new JcNode("c");
+    	JcNode taxonomy = new JcNode("t");
+    	
+    	Database.query(Database.access(), new IClause[]{
+    			MATCH.node(collection).label("collection")
+    			.relation().type("TAXONOMY")
+    			.node(taxonomy),
+    			WHERE.valueOf(collection.id()).EQUALS(collectionId),
+    			DO.SET(taxonomy.property("version"))
+    			.to(taxonomy.property("version").toInt().plus(1))
+    	});
+    }
   
-    public static void write(int collectionId, String serialized) {
+    public static void write(long collectionId, String serialized) {
         final String txPath = getPath(collectionId);
         try {
             final FileOutputStream fos = new FileOutputStream(new File(txPath));
@@ -120,5 +141,14 @@ public class TaxonomyDB {
             throw new RequestException("Error writing taxonomy to file");
         }
     }
+    
+    public static void update(long collectionId, String serialized) {
+    	increment(collectionId);
+    	write(collectionId, serialized);
+    }
+
+	public static Taxonomy SERP() {
+		return SERP_TAXONOMY;
+	}
 
 }
