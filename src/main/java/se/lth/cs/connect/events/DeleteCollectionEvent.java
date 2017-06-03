@@ -1,6 +1,7 @@
 package se.lth.cs.connect.events;
 
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 
 import iot.jcypher.query.JcQueryResult;
@@ -71,17 +72,7 @@ public class DeleteCollectionEvent implements UserEvent {
     }
     
     private void deleteTaxonomy() {
-        JcNode collection = new JcNode("c");
-        JcNode taxonomy = new JcNode("t");
-        
-    	Database.query(Database.access(), new IClause[]{
-            MATCH.node(collection).label("collection")
-                .relation().node(taxonomy).label("taxonomy"),
-            WHERE.valueOf(collection.id()).EQUALS(cid),
-            DO.DELETE(taxonomy)
-        });
-    	
-    	new File(TaxonomyDB.getPath(cid)).delete();
+		new File(TaxonomyDB.getPath(cid)).delete();
     }
 
     private void destroy() {
