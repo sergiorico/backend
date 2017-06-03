@@ -81,7 +81,6 @@ public class Collection extends BackendRouter {
             if (name == null || name.isEmpty())
                 throw new RequestException("No name parameter");
 
-            JcNode coll = new JcNode("c");
             JcNode usr = new JcNode("u");
             JcNumber id = new JcNumber("x");
 
@@ -89,18 +88,18 @@ public class Collection extends BackendRouter {
             JcQueryResult res = Database.query(Database.access(), new IClause[]{
                 MATCH.node(usr).label("user").property("email").value(email),
                 CREATE.node(usr).relation().type("MEMBER_OF").out()
-                    .node(coll).label("collection")
+                    .node().label("collection")
                     .property("name").value(name)
                     .relation().type("OWNER").out().node(usr),
-                CREATE.node(coll)
-        			.relation().type("TAXONOMY").out()
-        			.node().property("version").value(0),
-                    RETURN.value(coll.id()).AS(id)
             });
             
             int collectionId = res.resultOf(id).get(0).intValue();
-            TaxonomyDB.update(collectionId, "[]");
-
+            try {
+				TaxonomyDB.update(collectionId, new TaxonomyDB.Taxonomy());
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+			}
+            
             rc.json().send(
             	"{ \"id\": " + collectionId + " }");
             
@@ -151,12 +150,8 @@ public class Collection extends BackendRouter {
         
         // { version: number, taxonomy: [...] } 
         GET("/{id}/taxonomy", (rc) -> {
-        	int id = rc.getParameter("id").toInt();
-        	TaxonomyDB.TaxonomySnapshot read = TaxonomyDB.read(id);
-        	
-        	rc.json().send("{ \"version\": <VERSION>, \"taxonomy\": <TAXONOMY> }"
-            		.replace("<VERSION>", read.version + "")
-            		.replace("<TAXONOMY>", read.taxonomy));
+        	final int id = rc.getParameter("id").toInt();
+        	rc.json().send(TaxonomyDB.readCollectionTaxonomy(id));
         });
 
         // GET api.serpconnect.cs.lth.se/{id}/stats HTTP/1.1
@@ -319,6 +314,9 @@ public class Collection extends BackendRouter {
         // POST api.serpconnect.cs.lth.se/{id}/addEntry HTTP/1.1
         // entryId=...
         POST("/{id}/addEntry", (rc) -> {
+        	/**
+        	 * Hehe this route is actually never used in the frontend.
+        	 */
             final int id = rc.getParameter("id").toInt();
             if (rc.getParameter("entryId").isEmpty())
             	throw new RequestException("Must provide entryId");
@@ -357,10 +355,10 @@ public class Collection extends BackendRouter {
             // Only copy classification relations if they exist in the
             // extended or default taxonomy.
             ArrayList<String> taxonomy = new ArrayList<String>();
-            for (Facet f : TaxonomyDB.SERP().facets)
+            for (Facet f : TaxonomyDB.SERP().taxonomy)
             	taxonomy.add(f.id);
             
-        	for (Facet f : TaxonomyDB.taxonomyOf(id).facets)
+        	for (Facet f : TaxonomyDB.taxonomyOf(id).taxonomy)
         		taxonomy.add(f.id);
             
         	final BigDecimal newEntryId = cqr.resultOf(entityId).get(0);
@@ -412,14 +410,15 @@ public class Collection extends BackendRouter {
         ALL("/{id}/.*", (rc) -> {
         	if(!isOwner(rc))
        		 	throw new RequestException(401, "You must be an owner of the collection");
-        	if (rc.getParameter("email").isEmpty())
-                throw new RequestException("Invalid email");
+
             rc.next();
         });
 
         // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
         // email=...
         POST("/{id}/kick", (rc) -> {
+        	if (rc.getParameter("email").isEmpty())
+                throw new RequestException("Invalid email");
         	 String email = rc.getParameter("email").toString();
 
         	 //don't allow the user to kick himself
@@ -449,6 +448,8 @@ public class Collection extends BackendRouter {
         // POST api.serpconnect.cs.lth.se/{id}/invite HTTP/1.1
         // email[0]=...&email[1]=
         POST("/{id}/invite", (rc) -> {
+        	if (rc.getParameter("email").isEmpty())
+                throw new RequestException("Invalid email");
             int id = rc.getParameter("id").toInt();
             List<String> emails = rc.getParameter("email").toList(String.class);
             String inviter = rc.getSession("email");
@@ -506,30 +507,31 @@ public class Collection extends BackendRouter {
             rc.getResponse().ok();
         });
         
-        
         // { version: number, taxonomy: [...] }
         PUT("/{id}/taxonomy", (rc) -> {
         	final int id = rc.getParameter("id").toInt();
             final ObjectMapper mapper = new ObjectMapper(); 
-            JsonNode req;
+            TaxonomyDB.Taxonomy req;
 
         	try {
-				req = mapper.readTree(rc.getRequest().getBody());                
+        		req = mapper.readValue(rc.getRequest().getBody(), 
+        								TaxonomyDB.Taxonomy.class);
 			} catch (JsonProcessingException e) {
 				throw new RequestException("Illegal JSON");
 			} catch (IOException e) {
 				throw new RequestException("Illegal JSON");
 			}
-            long version = req.get("version").asLong();
-            long current = TaxonomyDB.version(id);
+            long current = TaxonomyDB.taxonomyOf(id).version;
             
-            if (version < current) {
-                throw new RequestException("Out of date version");
-            }
+            if (req.version < current)
+                throw new RequestException("Out of date version. Stored=" + 
+                							current + ", Request=" + req.version);
+            
+            if (req.version == current)
+            	req.version += 1;
             
 			try {
-				final String taxonomy = String.valueOf(mapper.writeValueAsBytes(req.get("taxonomy")));
-				TaxonomyDB.update(id, taxonomy);
+				TaxonomyDB.update(id, req);
 			} catch (JsonProcessingException e) {
 				throw new RequestException("Sneaky illegal JSON");
 			}
