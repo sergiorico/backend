@@ -33,6 +33,7 @@ import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.TaxonomyDB;
 
 /**
  Handles /entry routes for now.
@@ -197,24 +198,9 @@ public class Entry extends BackendRouter {
             rc.json().send(new Graph(res.resultOf(node), res.resultOf(rel)));
         });
 
-        // GET /taxonomy --> [{facet:'EXECUTION',texts:[samples]}, ..., {}]
+        // GET /taxonomy --> {version:X, taxonomy:[{id,name,parent}]}
         GET("/taxonomy", (rc) -> {
-            // Dragon city
-            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
-                NATIVE.cypher("MATCH (n)-[r]->(f:facet)"),
-                NATIVE.cypher("WHERE n.pending IS NULL"),
-                NATIVE.cypher("RETURN COLLECT(DISTINCT f.text) AS auto, type(r) AS rel"),
-                NATIVE.cypher("ORDER BY type(r)")
-            });
-
-            List<List<?>> auto = res.resultOf(new JcCollection("auto"));
-            List<String> rel = res.resultOf(new JcString("rel"));
-
-            TaxonomyFacet[] facets = new TaxonomyFacet[rel.size()];
-            for (int i = 0; i < facets.length; i++)
-                facets[i] = new TaxonomyFacet(rel.get(i), auto.get(i));
-
-            rc.json().send(facets);
+            rc.json().send(TaxonomyDB.SERP());
         });
 
         // GET /{id} --> {entry}
