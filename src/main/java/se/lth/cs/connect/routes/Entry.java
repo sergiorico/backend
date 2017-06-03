@@ -154,21 +154,15 @@ public class Entry extends BackendRouter {
         }
 
         public IClause build(JcNode node) {
-            String hval = hash();
-
-            if (isResearch())
-                return CREATE.node(node).label("entry").label(entryType)
-                    .property("contact").value(contact)
-                    .property("reference").value(reference)
-                    .property("doi").value(doi)
-                    .property("hash").value(hval)
-                    .property("date").value(date);
-            else
-                return CREATE.node(node).label("entry").label(entryType)
-                    .property("contact").value(contact)
-                    .property("hash").value(hval)
-                    .property("date").value(date)
-                    .property("description").value(description);
+        	Graph.Node gg = new Graph.Node();
+        	gg.contact = contact;
+        	gg.reference = reference;
+        	gg.doi = doi;
+        	gg.date = date;
+        	gg.hash = hash();
+        	gg.description = description;
+        	
+        	return gg.create(node);
         }
     }
 
