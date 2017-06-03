@@ -1,5 +1,6 @@
 package se.lth.cs.connect.events;
 
+import java.io.File;
 import java.math.BigDecimal;
 
 import iot.jcypher.query.JcQueryResult;
@@ -12,6 +13,7 @@ import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
 import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.TaxonomyDB;
 
 
 
@@ -26,6 +28,7 @@ public class DeleteCollectionEvent implements UserEvent {
 	public void execute() {
         detachMembers();
         detachEntries();
+        deleteTaxonomy();
         destroy();
     }
 
@@ -65,6 +68,20 @@ public class DeleteCollectionEvent implements UserEvent {
 
         for (BigDecimal eid : res.resultOf(entryId))
             new DetachEntryEvent(cid, eid.longValue()).execute();
+    }
+    
+    private void deleteTaxonomy() {
+        JcNode collection = new JcNode("c");
+        JcNode taxonomy = new JcNode("t");
+        
+    	Database.query(Database.access(), new IClause[]{
+            MATCH.node(collection).label("collection")
+                .relation().node(taxonomy).label("taxonomy"),
+            WHERE.valueOf(collection.id()).EQUALS(cid),
+            DO.DELETE(taxonomy)
+        });
+    	
+    	new File(TaxonomyDB.getPath(cid)).delete();
     }
 
     private void destroy() {
