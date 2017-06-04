@@ -390,6 +390,20 @@ Query user by email
 Collection
 ----------
 
+Create new collection
+~~~~~~~~~~~~~~~~~~~~~
+.. http:post:: /v1/collection/
+
+   Create a new collection.
+
+   :param name: the collection's name (doesn't have to be unique).
+   :type name: string
+
+   :statuscode 400: must provide name
+   :statuscode 401: must be logged in to create new collections
+
+Get collection graph
+~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/graph
 
    Query the node graph of entries and entities.
@@ -410,6 +424,8 @@ Collection
    :statuscode 400: id must be an integer
    :statuscode 404: no collection with that id exists
 
+Get statistics
+~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/stats
 
    Query number of members and entries in this collection.
@@ -430,6 +446,8 @@ Collection
    :statuscode 400: id must be an integer
    :statuscode 404: no collection with that id exists
 
+Get entries
+~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/entries
 
    Query entries in this collection.
@@ -446,18 +464,10 @@ Collection
    :statuscode 400: must provide id, id must be an integer
    :statuscode 404: no collection with that id exists
 
-.. http:post:: /v1/collection/
-
-   Create a new collection.
-
-   :param name: the collection's name (doesn't have to be unique).
-   :type name: string
-
-   :statuscode 400: must provide name
-   :statuscode 401: must be logged in to create new collections
-
 Only requests with an attached session id, where the user is directly connected to the specified collection, are allowed access to these routes.
 
+Accept an invite
+~~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/accept
 
    Accept an invitation to join a specific collection.
@@ -470,6 +480,8 @@ Only requests with an attached session id, where the user is directly connected 
 
 Only requests with an attached session id, where the user is directly connected to the specified collection, are allowed access to these routes.
 
+Send an invite
+~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/invite
 
    Invite a user to a collection.
@@ -484,6 +496,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Leave a collection
+~~~~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/leave
 
    Leave the collection.
@@ -495,10 +509,13 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 401: must be logged in
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
-   
+
+Remove an entry
+~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/removeEntry
 
-   Remove an entry from the collection.
+   Remove an entry from the collection. If the entry isn't included
+   in any other collections it is removed.
 
    :param id: collection id
    :type id: int
@@ -510,9 +527,12 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Add an existing entry
+~~~~~~~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/addEntry
 
-   Add an existing entry to the collection.
+   Add an existing entry to the collection. This will copy the specified
+   entry. The classifications where the facet exists in both taxonomies are copied.
 
    :param id: collection id
    :type id: int
@@ -524,6 +544,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
    
+Get members of a collection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/members
 
    Query members in this collection.
@@ -542,6 +564,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Get the extended taxonomy
+~~~~~~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/taxonomy
 
    Query the extended taxonomy of this collection. `Facet`_ objects
@@ -565,6 +589,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Update the extended taxonomy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. http:put:: /v1/collection/(int:id)/taxonomy
 
    Update the extended taxonomy.  The request will only pass if
@@ -589,6 +615,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Reclassify some entities
+~~~~~~~~~~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/reclassify
 
    Replace old facets with new facets for some entities.
@@ -613,6 +641,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Get all the entities
+~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/entities
 
    Get all the entities.
@@ -636,6 +666,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Query the classification
+~~~~~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/classification
 
    Get all the entities grouped by taxonomy facet.
