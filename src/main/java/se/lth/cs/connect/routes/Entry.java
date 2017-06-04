@@ -169,12 +169,10 @@ public class Entry extends BackendRouter {
     }
 
     static class TaxonomyFacet {
-    	public long entityId;
         public String facetId;
         public String[] text;
 
-        public TaxonomyFacet(long id, String facet, List<?> data) {
-        	this.entityId = id;
+        public TaxonomyFacet(String facet, List<?> data) {
             this.facetId = facet;
             this.text = new String[data.size()];
 

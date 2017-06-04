@@ -23,7 +23,6 @@ import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
-import iot.jcypher.query.factories.clause.WITH;
 import iot.jcypher.query.values.JcBoolean;
 import iot.jcypher.query.values.JcCollection;
 import iot.jcypher.query.values.JcNode;
@@ -311,14 +310,50 @@ public class Collection extends BackendRouter {
             rc.next();
         });
         
-        // GET /{id}/entities --> [{facet:'EXECUTION',text:[samples]}, ..., {}]
+        // GET /{id}/entities --> [{id:1,text:"yalla"}]
         GET("/{id}/entities", (rc) -> {
-            // Dragon city
         	final long id = rc.getParameter("id").toLong();
         	final JcNode collection = new JcNode("c");
         	final JcNode entity = new JcNode("e");
-        	final JcRelation facet = new JcRelation("ff");
-        	final JcString facetType = new JcString("rel");
+        	final JcNumber eid = new JcNumber("eid");
+        	final JcString txt = new JcString("txt");
+
+        	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+        		MATCH.node(collection)
+            		.relation().type("CONTAINS")
+            		.node().label("entry")
+            		.relation()
+            		.node(entity).label("facet"),
+            	WHERE.valueOf(collection.id()).EQUALS(id),
+            	RETURN.DISTINCT().value(entity.id()).AS(eid),
+            	RETURN.value(entity.property("text")).AS(txt)
+            });
+
+            List<BigDecimal> entityIds = res.resultOf(eid);
+            List<String> entityText = res.resultOf(txt);
+            
+            class Entity {
+            	public long id;
+            	public String text;
+            	public Entity(long id, String text) {
+            		this.id = id;
+            		this.text = text;
+            	}
+            }
+
+            Entity[] entities = new Entity[entityIds.size()];
+            for (int i = 0; i < entities.length; i++)
+            	entities[i] = new Entity(entityIds.get(i).longValue(), entityText.get(i));
+
+            rc.json().send(entities);
+        });
+        
+        // GET /{id}/classification --> [{facetId:"PLANNING,text:["yalla"]}]
+        GET("/{id}/classification", (rc) -> {
+        	final long id = rc.getParameter("id").toLong();
+        	final JcNode collection = new JcNode("c");
+        	final JcNode entity = new JcNode("e");
+        	final JcRelation facet = new JcRelation("f");
 
         	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
         		MATCH.node(collection)
@@ -327,18 +362,16 @@ public class Collection extends BackendRouter {
             		.relation(facet)
             		.node(entity).label("facet"),
             	WHERE.valueOf(collection.id()).EQUALS(id),
-            	NATIVE.cypher("RETURN COLLECT(DISTINCT e.text) AS text, id(e) AS eid, type(ff) as rel"),
-            	NATIVE.cypher("ORDER BY type(ff)")
+            	NATIVE.cypher("RETURN COLLECT(DISTINCT e.text) AS text, type(f) AS rel"),
+            	NATIVE.cypher("ORDER BY type(f)")
             });
 
-            List<List<?>> auto = res.resultOf(new JcCollection("text"));
-            List<BigDecimal> entityIds = res.resultOf(new JcNumber("eid"));
-            List<String> rel = res.resultOf(facetType);
+            List<List<?>> facetText = res.resultOf(new JcCollection("text"));
+            List<String> facetTypes = res.resultOf(new JcString("rel"));
 
-            TaxonomyFacet[] facets = new TaxonomyFacet[rel.size()];
+            TaxonomyFacet[] facets = new TaxonomyFacet[facetTypes.size()];
             for (int i = 0; i < facets.length; i++)
-                facets[i] = new TaxonomyFacet(entityIds.get(i).longValue(),
-                				rel.get(i), auto.get(i));
+            	facets[i] = new TaxonomyFacet(facetTypes.get(i), facetText.get(i));
 
             rc.json().send(facets);
         });
