@@ -7,8 +7,8 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import iot.jcypher.database.IDBAccess;
@@ -22,9 +22,8 @@ import iot.jcypher.query.factories.clause.MERGE;
 import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
-import iot.jcypher.query.factories.clause.SEPARATE;
 import iot.jcypher.query.factories.clause.WHERE;
-import iot.jcypher.query.factories.xpression.C;
+import iot.jcypher.query.factories.clause.WITH;
 import iot.jcypher.query.values.JcBoolean;
 import iot.jcypher.query.values.JcCollection;
 import iot.jcypher.query.values.JcNode;
@@ -39,13 +38,11 @@ import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
 import se.lth.cs.connect.events.DeleteEntryEvent;
-import se.lth.cs.connect.events.DetachEntryEvent;
 import se.lth.cs.connect.events.LeaveCollectionEvent;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.TaxonomyDB;
 import se.lth.cs.connect.modules.TaxonomyDB.Facet;
-import se.lth.cs.connect.modules.TaxonomyDB.Taxonomy;
 import se.lth.cs.connect.routes.Entry.TaxonomyFacet;
 
 /**
@@ -70,6 +67,21 @@ public class Collection extends BackendRouter {
 		
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
     }
+    
+    /** 
+     * JSON request body for /collection/{id}/reclassify
+     */
+    static class ReclassifyRequest 
+    {
+    	@JsonProperty("oldFacetId")
+    	public String oldFacetId;
+    	
+    	@JsonProperty("newFacetId")
+    	public String newFacetId;
+    	
+    	@JsonProperty("entities")
+    	public List<Long> entities;
+	}
      
     @Override
 	protected void setup(PippoSettings conf) {
@@ -329,6 +341,33 @@ public class Collection extends BackendRouter {
                 				rel.get(i), auto.get(i));
 
             rc.json().send(facets);
+        });
+        
+        
+        // POST /55/reclassify {oldType:facetId,newType:facetId,entities:[33,13]}
+        POST("/{id}/reclassify", (rc) -> {
+        	final long id = rc.getParameter("id").toLong();
+        	final ReclassifyRequest req = rc.createEntityFromBody(ReclassifyRequest.class);
+        	
+        	for (long eid : req.entities) {
+        		final JcNode c = new JcNode("c");
+        		final JcRelation r = new JcRelation("r");
+        		final JcNode n = new JcNode("n");
+        		final JcNode e = new JcNode("e");
+        		
+        		Database.query(rc.getLocal("db"), new IClause[]{
+        			MATCH.node(c).label("collection")
+        				.relation().type("CONTAINS")
+        				.node(n).label("entry")
+        				.relation(r).type(req.oldFacetId)
+        				.node(e).label("facet"),
+        			WHERE.valueOf(c.id()).EQUALS(id).AND().valueOf(e.id()).EQUALS(eid),
+        			CREATE.node(n).relation().type(req.newFacetId).out().node(e),
+        			DO.DELETE(r)
+        		});
+        	}
+        	
+        	rc.getResponse().ok();
         });
 
         // POST api.serpconnect.cs.lth.se/{id}/leave HTTP/1.1
