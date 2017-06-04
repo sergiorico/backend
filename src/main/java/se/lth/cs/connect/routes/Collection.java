@@ -315,16 +315,18 @@ public class Collection extends BackendRouter {
             		.relation(facet)
             		.node(entity).label("facet"),
             	WHERE.valueOf(collection.id()).EQUALS(id),
-            	NATIVE.cypher("RETURN COLLECT(DISTINCT e.text) AS text, type(ff) as rel"),
+            	NATIVE.cypher("RETURN COLLECT(DISTINCT e.text) AS text, id(e) AS eid, type(ff) as rel"),
             	NATIVE.cypher("ORDER BY type(ff)")
             });
 
             List<List<?>> auto = res.resultOf(new JcCollection("text"));
+            List<BigDecimal> entityIds = res.resultOf(new JcNumber("eid"));
             List<String> rel = res.resultOf(facetType);
 
             TaxonomyFacet[] facets = new TaxonomyFacet[rel.size()];
             for (int i = 0; i < facets.length; i++)
-                facets[i] = new TaxonomyFacet(rel.get(i), auto.get(i));
+                facets[i] = new TaxonomyFacet(entityIds.get(i).longValue(),
+                				rel.get(i), auto.get(i));
 
             rc.json().send(facets);
         });
