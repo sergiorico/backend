@@ -85,16 +85,18 @@ public class Collection extends BackendRouter {
             if (name == null || name.isEmpty())
                 throw new RequestException("No name parameter");
 
-            JcNode usr = new JcNode("u");
-            JcNumber id = new JcNumber("x");
+            final JcNode usr = new JcNode("u");
+            final JcNumber id = new JcNumber("x");
+            final JcNode coll = new JcNode("c");
 
             //usr-(member_of)->coll-(owner)->user
             JcQueryResult res = Database.query(Database.access(), new IClause[]{
                 MATCH.node(usr).label("user").property("email").value(email),
                 CREATE.node(usr).relation().type("MEMBER_OF").out()
-                    .node().label("collection")
+                    .node(coll).label("collection")
                     .property("name").value(name)
                     .relation().type("OWNER").out().node(usr),
+                RETURN.value(coll.id()).AS(id)
             });
             
             int collectionId = res.resultOf(id).get(0).intValue();
