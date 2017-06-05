@@ -1,6 +1,7 @@
 package se.lth.cs.connect.routes;
 
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest; // for sha256
 import java.util.ArrayList;
@@ -21,7 +22,6 @@ import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
 import iot.jcypher.query.values.JcBoolean;
-import iot.jcypher.query.values.JcCollection;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
@@ -84,6 +84,9 @@ public class Entry extends BackendRouter {
         }
 
         public String validate() {
+        	if (contact == null)
+        		contact = "";
+        	
             if (isResearch()) {
                 if (reference == null)
                     return "No reference(s).";
@@ -223,6 +226,34 @@ public class Entry extends BackendRouter {
             else
                 rc.json().send(new Graph.Node(entries.get(0)));
         });
+        
+        GET("/{id}/collection", (rc) -> {
+        	final JcNode node = new JcNode("entry");
+        	final JcNode coll = new JcNode("coll");
+        	final JcNumber cid = new JcNumber("cid");
+            final int id = rc.getParameter("id").toInt();
+
+            final JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node(node).label("entry")
+                	.relation().type("CONTAINS")
+                	.node(coll).label("collection"),
+                WHERE.valueOf(node.id()).EQUALS(id),
+                RETURN.value(coll.id()).AS(cid)
+            });
+
+            final List<BigDecimal> cids = res.resultOf(cid);
+ 
+            class ReturnVal {
+            	public long id;
+            	public ReturnVal(long id) { this.id = id; }
+            }
+            
+            // Catch both 0 and >1 cases; >1 requires human mistake
+            if (cids.size() == 0)
+                throw new RequestException("No entry with that id exists");
+            else
+                rc.json().send(new ReturnVal(cids.get(0).longValue()));
+        });
 
         // GET /{id}/taxonomy --> { category: [], ..., category: [] }
         GET("/{id}/taxonomy", (rc) -> {
@@ -257,18 +288,23 @@ public class Entry extends BackendRouter {
 
         // PUT /{id}
         PUT("/{id}", (rc) -> {
-            int id = rc.getParameter("id").toInt();
-            if (rc.getSession("email") == null)
-                throw new RequestException("Must be logged in.");
+        	if (rc.getSession("email") == null)
+        		throw new RequestException("Must be logged in.");
+        	
+            final long id = rc.getParameter("id").toInt();
 
             AccountSystem.Account user = AccountSystem.findByEmail(rc.getSession("email"));
             if (!TrustLevel.authorize(user.trust, TrustLevel.USER))
                 throw new RequestException(403, "Please verify account before submitting entries.");
 
             NewEntry e = rc.createEntityFromBody(NewEntry.class);
+            
+            // Validate
+            String err = e.validate();
+            if (err != null)
+                throw new RequestException(err);
 
             JcNode entry = new JcNode("entry");
-            JcNode unode = new JcNode("user");
             JcNode coll = new JcNode("collection");
 
             // Admins are allowed to edit any entry
@@ -294,7 +330,7 @@ public class Entry extends BackendRouter {
             });
 
             List<IClause> taxonomy = e.taxonomy(entry);
-            ArrayList<IClause> update = new ArrayList();
+            ArrayList<IClause> update = new ArrayList<IClause>();
             update.add(DO.SET(entry.property("contact")).to(e.contact));
             update.add(DO.SET(entry.property("hash")).to(e.hash()));
             if (e.isResearch()) {

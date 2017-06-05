@@ -471,7 +471,7 @@ public class Collection extends BackendRouter {
         	for (Facet f : TaxonomyDB.taxonomyOf(id).taxonomy)
         		taxonomy.add(f.id);
             
-        	final BigDecimal newEntryId = cqr.resultOf(entityId).get(0);
+        	final long newEntryId = cqr.resultOf(entityId).get(0).longValue();
         	final List<String> facets = rr.resultOf(facetType);
         	final List<BigDecimal> entities = rr.resultOf(entityId);
             for (int i = 0; i < facets.size(); i++) {
@@ -484,7 +484,7 @@ public class Collection extends BackendRouter {
             		MATCH.node(entry).label("entry"),
             		MATCH.node(entity).label("facet"),
             		WHERE.valueOf(entry.id()).EQUALS(newEntryId)
-            			.AND().valueOf(entity.id()).EQUALS(entities.get(i)),
+            			.AND().valueOf(entity.id()).EQUALS(entities.get(i).longValue()),
             		CREATE.node(entry).relation().type(type).out().node(entity)
             	});
             }
