@@ -1,4 +1,4 @@
 { 
-    "taxonomy": [{ "name": "WALLA BRALLA YALLA", "id": "LAND", "parent": "SE" }],
+    "taxonomy": [{"id":"EFFECT","name":"Effect","parent":"root"},{"id":"ADAPTING","name":"Adapt testing","parent":"effect"},{"id":"SOLVING","name":"Solve new problem","parent":"effect"},{"id":"ASSESSING","name":"Assess new problem","parent":"effect"},{"id":"IMPROVING","name":"Improve testing","parent":"effect"},{"id":"SCOPE","name":"Scope","parent":"root"},{"id":"PLANNING","name":"Test planning","parent":"scope"},{"id":"DESIGN","name":"Test design","parent":"scope"},{"id":"EXECUTION","name":"Test execution","parent":"scope"},{"id":"ANALYSIS","name":"Test analysis","parent":"scope"},{"id":"CONTEXT","name":"Context","parent":"root"},{"id":"PEOPLE","name":"People related constraints","parent":"context"},{"id":"INFORMATION","name":"Availability of information","parent":"context"},{"id":"SUT","name":"Properties of SUT","parent":"context"},{"id":"OTHER","name":"Other","parent":"context"},{"id":"INTERVENTION","name":"Intervention","parent":"root"}],
     "version": 1
 }
