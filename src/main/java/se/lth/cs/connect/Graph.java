@@ -7,6 +7,9 @@ import iot.jcypher.graph.GrLabel;
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.graph.GrProperty;
 import iot.jcypher.graph.GrRelation;
+import iot.jcypher.query.api.IClause;
+import iot.jcypher.query.factories.clause.CREATE;
+import iot.jcypher.query.values.JcNode;
 
 /**
  * Helper class for simplifying json reflection.
@@ -184,6 +187,22 @@ public class Graph {
             found.toArray(nodes);
             return nodes;
         }
+
+		public IClause create(JcNode bind) {
+			iot.jcypher.query.api.pattern.Node node = CREATE.node(bind)
+				.label("entry").label(type)
+				.property("hash").value(hash);
+			
+			if (type.equals("research")) {
+				return node
+						.property("reference").value(reference)
+						.property("doi").value(doi);
+			}
+			
+			return node.property("description").value(description);
+		}
+		
+		public IClause create() { return create(new JcNode("copy")); }
     }
 
     public static class Edge {

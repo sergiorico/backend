@@ -15,7 +15,7 @@ import org.junit.Test;
 import com.jayway.restassured.filter.session.SessionFilter;
 
 import ro.pippo.core.PippoConstants;
-import se.lth.cs.connect.Mailbox.Mail;
+import se.lth.cs.connect.Mailbox;
 import se.lth.cs.connect.modules.MailClient;
 
 public class ITUserAPI extends APITest {
@@ -125,7 +125,7 @@ public class ITUserAPI extends APITest {
 			post("/v1/account/reset-password");
 		
 		//filter mail for the token
-		Mail test = mailbox.top();
+		Mailbox.Mail test = mailbox.top();
 		String[] split = test.content.split("token=");
 		String[] token = split[1].split("\n");
 		String verify = URLDecoder.decode(token[0], PippoConstants.UTF8);

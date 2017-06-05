@@ -1,8 +1,15 @@
 package se.lth.cs.connect.routes;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import iot.jcypher.database.IDBAccess;
 import iot.jcypher.graph.GrNode;
@@ -16,8 +23,8 @@ import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
-import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.values.JcBoolean;
+import iot.jcypher.query.values.JcCollection;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
@@ -29,10 +36,13 @@ import se.lth.cs.connect.Connect;
 import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
-import se.lth.cs.connect.events.DetachEntryEvent;
+import se.lth.cs.connect.events.DeleteEntryEvent;
 import se.lth.cs.connect.events.LeaveCollectionEvent;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.TaxonomyDB;
+import se.lth.cs.connect.modules.TaxonomyDB.Facet;
+import se.lth.cs.connect.routes.Entry.TaxonomyFacet;
 
 /**
  * Handles account related actions.
@@ -53,10 +63,25 @@ public class Collection extends BackendRouter {
         inviteTemplate = msg.get("pippo.collectioninvite", "en");
         inviteNewUserTemplate = msg.get("pippo.collectioninvitenewuser", "en");
 		inviteActionTemplate = msg.get("pippo.collectioninviteaction", "en");
-
+		
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
     }
-
+    
+    /** 
+     * JSON request body for /collection/{id}/reclassify
+     */
+    static class ReclassifyRequest 
+    {
+    	@JsonProperty("oldFacetId")
+    	public String oldFacetId;
+    	
+    	@JsonProperty("newFacetId")
+    	public String newFacetId;
+    	
+    	@JsonProperty("entities")
+    	public List<Long> entities;
+	}
+     
     @Override
 	protected void setup(PippoSettings conf) {
 
@@ -71,21 +96,30 @@ public class Collection extends BackendRouter {
             if (name == null || name.isEmpty())
                 throw new RequestException("No name parameter");
 
-            JcNode coll = new JcNode("c");
-            JcNode usr = new JcNode("u");
-            JcNumber id = new JcNumber("x");
+            final JcNode usr = new JcNode("u");
+            final JcNumber id = new JcNumber("x");
+            final JcNode coll = new JcNode("c");
 
             //usr-(member_of)->coll-(owner)->user
             JcQueryResult res = Database.query(Database.access(), new IClause[]{
                 MATCH.node(usr).label("user").property("email").value(email),
                 CREATE.node(usr).relation().type("MEMBER_OF").out()
                     .node(coll).label("collection")
-                    .property("name").value(name).relation().type("OWNER").out().node(usr),
+                    .property("name").value(name)
+                    .relation().type("OWNER").out().node(usr),
                 RETURN.value(coll.id()).AS(id)
             });
-
+            
+            int collectionId = res.resultOf(id).get(0).intValue();
+            try {
+				TaxonomyDB.update(collectionId, new TaxonomyDB.Taxonomy());
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+			}
+            
             rc.json().send(
-            	"{ \"id\": " + res.resultOf(id).get(0) + " }");
+            	"{ \"id\": " + collectionId + " }");
+            
         });
 
         //id must be a string and the id must exist in the database.
@@ -129,6 +163,12 @@ public class Collection extends BackendRouter {
             });
 
             rc.json().send(new Graph(res.resultOf(node), res.resultOf(rel)));
+        });
+        
+        // { version: number, taxonomy: [...] } 
+        GET("/{id}/taxonomy", (rc) -> {
+        	final int id = rc.getParameter("id").toInt();
+        	rc.json().send(TaxonomyDB.readCollectionTaxonomy(id));
         });
 
         // GET api.serpconnect.cs.lth.se/{id}/stats HTTP/1.1
@@ -251,12 +291,12 @@ public class Collection extends BackendRouter {
 
         // Must be logged in AND member of collection to proceed
         ALL("/{id}/.*", (rc) -> {
-            String email = rc.getSession("email");
-            int id = rc.getParameter("id").toInt();
+            final String email = rc.getSession("email");
+            final int id = rc.getParameter("id").toInt();
 
-            JcNode coll = new JcNode("coll");
+            final JcNode coll = new JcNode("coll");
 
-            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+            final JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
                 MATCH.node().label("user").property("email").value(email)
                     .relation().out().type("MEMBER_OF")
                     .node(coll).label("collection"),
@@ -269,11 +309,104 @@ public class Collection extends BackendRouter {
 
             rc.next();
         });
+        
+        // GET /{id}/entities --> [{id:1,text:"yalla"}]
+        GET("/{id}/entities", (rc) -> {
+        	final long id = rc.getParameter("id").toLong();
+        	final JcNode collection = new JcNode("c");
+        	final JcNode entity = new JcNode("e");
+        	final JcNumber eid = new JcNumber("eid");
+        	final JcString txt = new JcString("txt");
+
+        	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+        		MATCH.node(collection)
+            		.relation().type("CONTAINS")
+            		.node().label("entry")
+            		.relation()
+            		.node(entity).label("facet"),
+            	WHERE.valueOf(collection.id()).EQUALS(id),
+            	RETURN.DISTINCT().value(entity.id()).AS(eid),
+            	RETURN.value(entity.property("text")).AS(txt)
+            });
+
+            List<BigDecimal> entityIds = res.resultOf(eid);
+            List<String> entityText = res.resultOf(txt);
+            
+            class Entity {
+            	public long id;
+            	public String text;
+            	public Entity(long id, String text) {
+            		this.id = id;
+            		this.text = text;
+            	}
+            }
+
+            Entity[] entities = new Entity[entityIds.size()];
+            for (int i = 0; i < entities.length; i++)
+            	entities[i] = new Entity(entityIds.get(i).longValue(), entityText.get(i));
+
+            rc.json().send(entities);
+        });
+        
+        // GET /{id}/classification --> [{facetId:"PLANNING,text:["yalla"]}]
+        GET("/{id}/classification", (rc) -> {
+        	final long id = rc.getParameter("id").toLong();
+        	final JcNode collection = new JcNode("c");
+        	final JcNode entity = new JcNode("e");
+        	final JcRelation facet = new JcRelation("f");
+
+        	JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+        		MATCH.node(collection)
+            		.relation().type("CONTAINS")
+            		.node().label("entry")
+            		.relation(facet)
+            		.node(entity).label("facet"),
+            	WHERE.valueOf(collection.id()).EQUALS(id),
+            	NATIVE.cypher("RETURN COLLECT(DISTINCT e.text) AS text, type(f) AS rel"),
+            	NATIVE.cypher("ORDER BY type(f)")
+            });
+
+            List<List<?>> facetText = res.resultOf(new JcCollection("text"));
+            List<String> facetTypes = res.resultOf(new JcString("rel"));
+
+            TaxonomyFacet[] facets = new TaxonomyFacet[facetTypes.size()];
+            for (int i = 0; i < facets.length; i++)
+            	facets[i] = new TaxonomyFacet(facetTypes.get(i), facetText.get(i));
+
+            rc.json().send(facets);
+        });
+        
+        
+        // POST /55/reclassify {oldType:facetId,newType:facetId,entities:[33,13]}
+        POST("/{id}/reclassify", (rc) -> {
+        	final long id = rc.getParameter("id").toLong();
+        	final ReclassifyRequest req = rc.createEntityFromBody(ReclassifyRequest.class);
+        	
+        	for (long eid : req.entities) {
+        		final JcNode c = new JcNode("c");
+        		final JcRelation r = new JcRelation("r");
+        		final JcNode n = new JcNode("n");
+        		final JcNode e = new JcNode("e");
+        		
+        		Database.query(rc.getLocal("db"), new IClause[]{
+        			MATCH.node(c).label("collection")
+        				.relation().type("CONTAINS")
+        				.node(n).label("entry")
+        				.relation(r).type(req.oldFacetId)
+        				.node(e).label("facet"),
+        			WHERE.valueOf(c.id()).EQUALS(id).AND().valueOf(e.id()).EQUALS(eid),
+        			CREATE.node(n).relation().type(req.newFacetId).out().node(e),
+        			DO.DELETE(r)
+        		});
+        	}
+        	
+        	rc.getResponse().ok();
+        });
 
         // POST api.serpconnect.cs.lth.se/{id}/leave HTTP/1.1
         POST("/{id}/leave", (rc) -> {
-            String email = rc.getSession("email");
-            int id = rc.getParameter("id").toInt();
+            final String email = rc.getSession("email");
+            final int id = rc.getParameter("id").toInt();
             new LeaveCollectionEvent(id, email).execute();
             rc.getResponse().ok();
         });
@@ -281,30 +414,81 @@ public class Collection extends BackendRouter {
         // POST api.serpconnect.cs.lth.se/{id}/removeEntry HTTP/1.1
         // entryId=...
         POST("/{id}/removeEntry", (rc) -> {
-            int id = rc.getParameter("id").toInt();
-            int entryId = rc.getParameter("entryId").toInt();
-            new DetachEntryEvent(id, entryId).execute();
+            if (rc.getParameter("entryId").isEmpty())
+            	throw new RequestException("Must provide entryId");
+            
+            new DeleteEntryEvent(rc.getParameter("entryId").toInt()).execute();
             rc.getResponse().ok();
         });
 
-        // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
+        // POST api.serpconnect.cs.lth.se/{id}/addEntry HTTP/1.1
         // entryId=...
         POST("/{id}/addEntry", (rc) -> {
-            int id = rc.getParameter("id").toInt();
-            int entryId = rc.getParameter("entryId").toInt();
+        	/**
+        	 * Hehe this route is actually never used in the frontend.
+        	 */
+            final int id = rc.getParameter("id").toInt();
+            if (rc.getParameter("entryId").isEmpty())
+            	throw new RequestException("Must provide entryId");
+            
+            final int entryId = rc.getParameter("entryId").toInt();
 
             final JcNode entry = new JcNode("e");
             final JcNode coll = new JcNode("c");
-
-            // Connect entry and collection
-            Database.query(rc.getLocal("db"), new IClause[]{
-                MATCH.node(coll).label("collection"),
-                WHERE.valueOf(coll.id()).EQUALS(id),
-                MATCH.node(entry).label("entry"),
-                WHERE.valueOf(entry.id()).EQUALS(entryId),
-                MERGE.node(coll).relation().out().type("CONTAINS").node(entry)
+            final JcNode entity = new JcNode("x");
+            final JcRelation facet = new JcRelation("f");
+            final JcNumber entityId = new JcNumber("d");
+            final JcString facetType = new JcString("t");
+            
+            final JcQueryResult rr = Database.query(rc.getLocal("db"), new IClause[]{
+            	MATCH.node(entry).label("entry")
+            		.relation(facet)
+            		.node(entity).label("facet"),
+            	WHERE.valueOf(entry.id()).EQUALS(entryId),
+            	RETURN.value(entry).AS(entry),
+            	RETURN.value(facet.type()).AS(facetType),
+            	RETURN.value(entity.id()).AS(entityId)
+            });
+            
+            final Graph.Node graphNode = new Graph.Node(rr.resultOf(entry).get(0));
+            
+            final JcQueryResult cqr = Database.query(rc.getLocal("db"), new IClause[]{
+            	MATCH.node(coll).label("collection"),
+            	WHERE.valueOf(coll.id()).EQUALS(id),
+        		graphNode.create(entry),
+        		CREATE.node(entry)
+        			.relation().type("CONTAINS").out()
+        			.node(coll),
+        		RETURN.value(entry.id()).AS(entityId)
             });
 
+            // Only copy classification relations if they exist in the
+            // extended or default taxonomy.
+            ArrayList<String> taxonomy = new ArrayList<String>();
+            for (Facet f : TaxonomyDB.SERP().taxonomy)
+            	taxonomy.add(f.id);
+            
+        	for (Facet f : TaxonomyDB.taxonomyOf(id).taxonomy)
+        		taxonomy.add(f.id);
+            
+        	final long newEntryId = cqr.resultOf(entityId).get(0).longValue();
+        	final List<String> facets = rr.resultOf(facetType);
+        	final List<BigDecimal> entities = rr.resultOf(entityId);
+            for (int i = 0; i < facets.size(); i++) {
+            	final String type = facets.get(i);
+            	
+            	if (!taxonomy.contains(type))
+            		continue;
+            	
+            	Database.query(rc.getLocal("db"), new IClause[]{
+            		MATCH.node(entry).label("entry"),
+            		MATCH.node(entity).label("facet"),
+            		WHERE.valueOf(entry.id()).EQUALS(newEntryId)
+            			.AND().valueOf(entity.id()).EQUALS(entities.get(i).longValue()),
+            		CREATE.node(entry).relation().type(type).out().node(entity)
+            	});
+            }
+            
             rc.getResponse().ok();
         });
 
@@ -336,14 +520,15 @@ public class Collection extends BackendRouter {
         ALL("/{id}/.*", (rc) -> {
         	if(!isOwner(rc))
        		 	throw new RequestException(401, "You must be an owner of the collection");
-        	if (rc.getParameter("email").isEmpty())
-                throw new RequestException("Invalid email");
+
             rc.next();
         });
 
         // POST api.serpconnect.cs.lth.se/{id}/kick HTTP/1.1
         // email=...
         POST("/{id}/kick", (rc) -> {
+        	if (rc.getParameter("email").isEmpty())
+                throw new RequestException("Invalid email");
         	 String email = rc.getParameter("email").toString();
 
         	 //don't allow the user to kick himself
@@ -373,6 +558,8 @@ public class Collection extends BackendRouter {
         // POST api.serpconnect.cs.lth.se/{id}/invite HTTP/1.1
         // email[0]=...&email[1]=
         POST("/{id}/invite", (rc) -> {
+        	if (rc.getParameter("email").isEmpty())
+                throw new RequestException("Invalid email");
             int id = rc.getParameter("id").toInt();
             List<String> emails = rc.getParameter("email").toList(String.class);
             String inviter = rc.getSession("email");
@@ -429,6 +616,39 @@ public class Collection extends BackendRouter {
 
             rc.getResponse().ok();
         });
+        
+        // { version: number, taxonomy: [...] }
+        PUT("/{id}/taxonomy", (rc) -> {
+        	final int id = rc.getParameter("id").toInt();
+            final ObjectMapper mapper = new ObjectMapper(); 
+            TaxonomyDB.Taxonomy req;
+
+        	try {
+        		req = mapper.readValue(rc.getRequest().getBody(), 
+        								TaxonomyDB.Taxonomy.class);
+			} catch (JsonProcessingException e) {
+				throw new RequestException("Illegal JSON");
+			} catch (IOException e) {
+				throw new RequestException("Illegal JSON");
+			}
+            long current = TaxonomyDB.taxonomyOf(id).version;
+            
+            if (req.version < current)
+                throw new RequestException("Out of date version. Stored=" + 
+                							current + ", Request=" + req.version);
+            
+            if (req.version == current)
+            	req.version += 1;
+            
+			try {
+				TaxonomyDB.update(id, req);
+			} catch (JsonProcessingException e) {
+				throw new RequestException("Sneaky illegal JSON");
+			}
+            
+    	    rc.getResponse().ok();
+        });
+
     }
 
     public static boolean isOwner(RouteContext rc){
@@ -448,18 +668,6 @@ public class Collection extends BackendRouter {
     	});
 
 		return res.resultOf(new JcBoolean("ok")).size()>0;
-    }
-
-    private void removeEntriesWithNoCollection(RouteContext rc){
-    	final JcNode entry = new JcNode("e");
-    	Database.query(rc.getLocal("db"), new IClause[]{
-                MATCH.node(entry).label("entry"),
-                WHERE.NOT().existsPattern(
-                        X.node().label("collection")
-                        .relation().type("CONTAINS")
-                        .node(entry)),
-                DO.DETACH_DELETE(entry)
-            });
     }
 
     //Calls static handleInvitation. Exists to make the code cleaner for functions in this class.

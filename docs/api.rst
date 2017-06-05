@@ -40,18 +40,35 @@ Graph Taxonomy
 ~~~~~~~~~~~~~~
 .. http:get:: /v1/entry/taxonomy
 
-   Get the combined taxonomy for the whole database.
+   Get a flattened version of the standard SERP taxonomy. The flattened graph assumes an implicit "ROOT" node object as the top parent.
 
    .. sourcecode:: js
       
       {
-          "ADAPTING": ["YES, SIR"],
-          "IMPROVING": ["NO, SIR"]
+          "version": 0,
+          "taxonomy": [FACETS]
       }
 
-   :>json array <key>: each key maps to the entities/samples used to classify itself
+   :>json integer version: A version identifier.
+   :>json array taxonomy: An array of `Facet`_ objects. The flattened taxonomy.
 
    :statuscode 200: ok, return taxonomy
+
+Facet
+-----
+A node in the taxonomy tree is called a facet.
+
+.. sourcecode:: js
+   
+   {
+      "id": "PLANNING",
+      "name": "Test planning",
+      "parent": "SCOPE"
+   }
+
+Where ``id`` is a (per-taxonomy) unique identifier of this facet, 
+``name`` is a descriptive name and ``parent`` is the ``id`` of 
+the parent node (since a taxonomy is a tree). 
 
 Edge
 ----
@@ -373,6 +390,20 @@ Query user by email
 Collection
 ----------
 
+Create new collection
+~~~~~~~~~~~~~~~~~~~~~
+.. http:post:: /v1/collection/
+
+   Create a new collection.
+
+   :param name: the collection's name (doesn't have to be unique).
+   :type name: string
+
+   :statuscode 400: must provide name
+   :statuscode 401: must be logged in to create new collections
+
+Get collection graph
+~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/graph
 
    Query the node graph of entries and entities.
@@ -393,6 +424,8 @@ Collection
    :statuscode 400: id must be an integer
    :statuscode 404: no collection with that id exists
 
+Get statistics
+~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/stats
 
    Query number of members and entries in this collection.
@@ -413,6 +446,8 @@ Collection
    :statuscode 400: id must be an integer
    :statuscode 404: no collection with that id exists
 
+Get entries
+~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/entries
 
    Query entries in this collection.
@@ -429,18 +464,10 @@ Collection
    :statuscode 400: must provide id, id must be an integer
    :statuscode 404: no collection with that id exists
 
-.. http:post:: /v1/collection/
-
-   Create a new collection.
-
-   :param name: the collection's name (doesn't have to be unique).
-   :type name: string
-
-   :statuscode 400: must provide name
-   :statuscode 401: must be logged in to create new collections
-
 Only requests with an attached session id, where the user is directly connected to the specified collection, are allowed access to these routes.
 
+Accept an invite
+~~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/accept
 
    Accept an invitation to join a specific collection.
@@ -453,6 +480,8 @@ Only requests with an attached session id, where the user is directly connected 
 
 Only requests with an attached session id, where the user is directly connected to the specified collection, are allowed access to these routes.
 
+Send an invite
+~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/invite
 
    Invite a user to a collection.
@@ -467,6 +496,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Leave a collection
+~~~~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/leave
 
    Leave the collection.
@@ -478,10 +509,13 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 401: must be logged in
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
-   
+
+Remove an entry
+~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/removeEntry
 
-   Remove an entry from the collection.
+   Remove an entry from the collection. If the entry isn't included
+   in any other collections it is removed.
 
    :param id: collection id
    :type id: int
@@ -493,9 +527,12 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
 
+Add an existing entry
+~~~~~~~~~~~~~~~~~~~~~
 .. http:post:: /v1/collection/(int:id)/addEntry
 
-   Add an existing entry to the collection.
+   Add an existing entry to the collection. This will copy the specified
+   entry. The classifications where the facet exists in both taxonomies are copied.
 
    :param id: collection id
    :type id: int
@@ -507,6 +544,8 @@ Only requests with an attached session id, where the user is directly connected 
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
    
+Get members of a collection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/members
 
    Query members in this collection.
@@ -521,6 +560,133 @@ Only requests with an attached session id, where the user is directly connected 
    :>jsonarr User: An `Account`_ object.
 
    :statuscode 400: must provide id, id must be an integer
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
+
+Get the extended taxonomy
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. http:get:: /v1/collection/(int:id)/taxonomy
+
+   Query the extended taxonomy of this collection. `Facet`_ objects
+   returned by this query will reference the standard serp taxonomy, 
+   which must be queried separately.
+
+   :param id: collection id
+   :type id: int
+   
+   .. sourcecode:: js
+
+      {
+         "version": 0,
+         "taxonomy": [FACETS]
+      }
+
+   :>json integer version: Version identifier. Important for updating the taxonomy.
+   :>json array taxonomy: The `Facet`_ nodes of the extended taxonomy.
+
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
+
+Update the extended taxonomy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. http:put:: /v1/collection/(int:id)/taxonomy
+
+   Update the extended taxonomy.  The request will only pass if
+   the version is >= (greater than or equal to) the currently 
+   stored version.
+
+   :param id: collection id
+   :type id: int
+   
+   .. sourcecode:: js
+
+      {
+         "version": 0,
+         "taxonomy": [FACETS]
+      }
+
+   :<json integer version: Reference to the version this extension is based on.
+   :<json array taxonomy: The `Facet`_ nodes of the extended taxonomy.
+
+   :statuscode 400: illegal json, out of date version
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
+
+Reclassify some entities
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. http:post:: /v1/collection/(int:id)/reclassify
+
+   Replace old facets with new facets for some entities.
+
+   :param id: collection id
+   :type id: int
+   
+   .. sourcecode:: js
+
+      {
+         "oldFacetId": "PEOPLE",
+         "newFacetId": "STRANGE-PEOPLE",
+         "entities": [213, 255]
+      }
+
+   :<json string oldFacetId: The facet id that is to be replaced.
+   :<json string newFacetId: The replacement facet id.
+   :<json array entity: ids of the entities that are to be reclassified.
+
+   :statuscode 400: illegal json
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
+
+Get all the entities
+~~~~~~~~~~~~~~~~~~~~
+.. http:get:: /v1/collection/(int:id)/entities
+
+   Get all the entities.
+
+   :param id: collection id
+   :type id: int
+   
+   .. sourcecode:: js
+
+      [
+         {
+            "id": 222,
+            "text": "Regression testing"
+         }
+      ]
+
+   :>jsonarr id: id of the entity
+   :>jsonarr text: user text of the entity
+
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a member of the collection
+   :statuscode 404: no collection with that id exists
+
+Query the classification
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. http:get:: /v1/collection/(int:id)/classification
+
+   Get all the entities grouped by taxonomy facet.
+
+   :param id: collection id
+   :type id: int
+   
+   .. sourcecode:: js
+
+      [
+         {
+            "facetId": "PEOPLE",
+            "text": ["Shifty chimpanzees", "Rectangular red birds"]
+         }
+      ]
+
+   :>jsonarr facetId: id of the `Facet`_
+   :>jsonarr text: text of the entities classified with this facet
+
    :statuscode 401: must be logged in
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists

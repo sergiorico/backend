@@ -103,7 +103,7 @@ public class Admin extends BackendRouter {
             new DeleteCollectionEvent(id).execute();
             rc.getResponse().ok();
         });
-
+        
         GET("/collections-owned-by", (rc) -> {
         	if(rc.getParameter("email").isEmpty())
         		throw new RequestException("must provide an user email parameter");
