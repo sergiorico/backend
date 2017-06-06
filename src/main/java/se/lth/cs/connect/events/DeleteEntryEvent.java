@@ -26,10 +26,8 @@ public class DeleteEntryEvent implements UserEvent {
         JcRelation rel = new JcRelation("m");
 
         Database.query(Database.access(), new IClause[]{
-            MATCH.node(entry).label("entry"),
-            WHERE.valueOf(entry.id()).EQUALS(id),
-            WITH.value(entry),
             OPTIONAL_MATCH.node(entry).relation().node(facet).label("facet"),
+            WHERE.valueOf(entry.id()).EQUALS(id),
             DO.DETACH_DELETE(entry),
             WITH.value(facet),
             OPTIONAL_MATCH.node(facet).relation(rel).node().label("entry"),

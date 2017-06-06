@@ -33,17 +33,21 @@ public class DetachEntryEvent implements UserEvent {
         JcRelation rel = new JcRelation("m");
         JcBoolean orphan = new JcBoolean("o");
 
-        JcQueryResult res = Database.query(Database.access(), new IClause[]{
+        Database.query(Database.access(), new IClause[]{
             MATCH.node(collection).label("collection")
                 .relation(rel).node(entry).label("entry"),
             WHERE.valueOf(entry.id()).EQUALS(eid)
                 .AND().valueOf(collection.id()).EQUALS(cid),
-            DO.DELETE(rel),
-            WITH.value(entry),
-            MATCH.node(entry).relation().node().label("collection"),
-            NATIVE.cypher("RETURN false AS o"),
+            DO.DELETE(rel)
         });
 
+        JcQueryResult res = Database.query(Database.access(), new IClause[]{
+            MATCH.node(entry).label("entry")
+                .relation()
+                .node().label("collection"),
+            WHERE.valueOf(entry.id()).EQUALS(eid),
+            NATIVE.cypher("RETURN false AS o")
+        });
         return res.resultOf(orphan).size() == 0;
     }
 
