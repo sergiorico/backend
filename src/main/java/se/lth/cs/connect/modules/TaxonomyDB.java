@@ -65,7 +65,7 @@ public class TaxonomyDB {
         	reader.close();
         	return String.valueOf(data);
         } catch (IOException e) {
-            throw new RequestException("Error writing taxonomy to file");
+            throw new RequestException("Error reading taxonomy from file");
         }
     }
 
