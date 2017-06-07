@@ -31,6 +31,7 @@ inner and outer workings of the SERP Connect `backend`_ and `frontend`_.
 
    frontend/import
    frontend/export
+   frontend/admin
 
 .. toctree::
    :maxdepth: 1
