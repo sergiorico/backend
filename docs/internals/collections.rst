@@ -36,3 +36,8 @@ If a collection owner leaves the collection the collection and all related relat
  - Pending invites (relations) to that collection are deleted.
  - Entries in the collection are removed and will be deleted if they no longer are attached to any collection.
  
+Extending the taxonomy
+----------------------
+The purpose of extending the taxonomy is to classify entities in a more detailed way than what can be achieved with the base taxonomy. 
+This can only be done by the owner of a collection and is done on the search page by filtering by a specific collection and then clicking on one of the nodes of the taxonomy at the top. 
+From there, the user can add and remove leaves and change how the entities are classified. 
