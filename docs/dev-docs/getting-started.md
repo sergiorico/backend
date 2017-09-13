@@ -3,6 +3,73 @@ Getting Started
 
 ## Backend
 
+### Preparing your workstation
+
+#### java 8
+Java 8 (SDK & JRE) is required. Almost all os have a standard way of installing and upgrading java. These guides may work for you, but ideally you should look it up.
+
+Test if you already have java 8 by running:
+ - JRE: `java -version`
+ - SDK: `javac -version`
+
+**ubuntu/debian**
+ - JRE: `sudo apt-get install default-jre`
+ - SDK: `sudo apt-get install default-jdk`
+
+**windows**
+Download the JRE and SDK from [oracle](http://www.oracle.com/technetwork/java/javase/downloads/index.html).
+
+**os x/mac os**
+ - install [homebrew](https://brew.sh/)
+ - `brew install java`
+
+**other linux**
+ - try the default package manager
+ - otherwise [check this out](http://openjdk.java.net/install/)
+
+#### neo4j
+Install the **community edition** and **version 2.3.X**, where X is the highest you can find. The installation process depends on your os/environment. Here is the [official documentation](https://neo4j.com/docs/operations-manual/current/installation/). Below are summaries:
+
+**ubuntu/debian**
+ - install neo4j via apt-get ([instructions](http://debian.neo4j.org/))
+ - run `system neo4j start` to start
+ - run `system neo4j stop` to stop
+
+**windows**
+ - download the installer (.exe) [from legacy](https://neo4j.com/download/other-releases/)
+ - run it and install neo4j
+ - start & stop neo4j using the `neo4j-ce.exe` program
+
+**mac**
+ - download the neo4j dmg [from legacy](https://neo4j.com/download/other-releases/)
+ - drag neo4j to your applications folder
+ - use that program to start & stop a neo4j server
+
+**other linux**
+ - download a binary [from legacy](https://neo4j.com/download/other-releases/)
+ - untar it `tar -xzf <neo4j-download.tar.gz>`
+ - run `pwd` to get current working directory
+ - run `echo 'export $PATH=/full/path/to/neo4j-download/bin/:$PATH' >> ~/.profile`
+ - run `source ~/.profile`
+ - now your current and all new shells will be able to run the neo4j script
+ - run `neo4j start` and `neo4j stop` to start & stop, respectively
+
+After installation you should start a neo4j server and navigate to `http://localhost:7474` and login using neo4j/neo4j. Choose a new password, **and remember it**. You will need it later on. 
+
+#### maven
+Maven is a java package manager, amongst other things. We use version 3.
+
+**mac**
+ - `brew install maven30`
+
+**general**
+
+Try your luck with the package manager, otherwise these links are handy:
+ - [download](https://maven.apache.org/download.cgi)
+ - [install](https://maven.apache.org/install.html)
+
+### Design
+
 Here is an overview of the different components that make up the backend. Each box corresponds to a java package with a similar name.
 
 ![img](../images/overview.svg)
