@@ -43,7 +43,7 @@ used to protect the password (sent during login) and session cookie.
 
 Before running `mvn verify` make sure your neo4j server is dead. We have included a version to facilitiate testing during development, which is automatically started and shut down by the `mvn verify` command.
 
-Remember to [read-the-docs](http://http://serpconnect.readthedocs.io/en/latest/dev-docs/getting-started.html)
+Remember to [read-the-docs](http://serpconnect.readthedocs.io/en/latest/dev-docs/getting-started.html)
 
 ## Accounts
 Accounts are stored in the neo4j graph, labeled as `:user`. The account identity
