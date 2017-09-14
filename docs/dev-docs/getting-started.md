@@ -68,6 +68,24 @@ Try your luck with the package manager, otherwise these links are handy:
  - [download](https://maven.apache.org/download.cgi)
  - [install](https://maven.apache.org/install.html)
 
+### First steps
+
+After all required software has been installed you are ready to proceed.
+
+ - Strap up! `cd ~`
+ - Organise `mkdir connect && cd ~/connect`
+ - Clone `git clone git@github.com:emenlu/connect.git backend`
+ - Charge in `cd backend`
+ - Open `/src/main/resources/conf/application.properties` in your editor of choice
+ - Change `neo4j.password` to what you entered previously in the web ui
+ - Then run `mvn compile`
+ - If this errors, contact Axel
+ - Otherwie, run `mvn exec:java`
+
+Et voilà, you are ready!
+
+In the future, run `mvn compile exec:java -Dpippo.mode=dev` (maybe alias it). It does both commands after each other, and also runs the server in dev mode.
+
 ### Design
 
 Here is an overview of the different components that make up the backend. Each box corresponds to a java package with a similar name.
