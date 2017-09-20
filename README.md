@@ -1,11 +1,31 @@
 SERP Connect
 ============
 
+[![CircleCI](https://circleci.com/gh/emenlu/connect.svg?style=svg)](https://circleci.com/gh/emenlu/connect)
+
 SERP Connect is a project that connects research results in software engineering with challenges the industry have identified using a shared taxonomy. In addition to search & match capabilities this web tool also features collections, possibility to experiment with taxonomy extensions and powerful visualizations which aid presentations and provide overview.
 
 This repository contains the server (backend) of the project. It also contains the documentation hosted on [read-the-docs](http://serpconnect.rtfd.io).
 
+# Get Involved
+
+ - **Contributing**: Pull requests are welcome!
+   - Read [`CONTRIBUTING.md`](.github/CONTRIBUTING.md)
+   - Submit github issues for features, bugs or documentation problems
+ - **Discuss**: Talk to us and others over at [slack](https://serp-group.slack.com)
+
+# Installation
+
+A full explanation on installing connect and the dependencies is included in the [getting-started](http://serpconnect.readthedocs.io/en/latest/dev-docs/getting-started.html) documentation.
+
+```bash
+git clone https://github.com/emenlu/connect
+cd connect
+mvn compile exec:java -Dpippo.mode=DEV
+```
+
 ### Requirements
+
  - Apache maven (mvn) [link](https://maven.apache.org/download.cgi)
  - Java SDK (1.8+)
  - neo4j database (2.3.X)
@@ -38,6 +58,8 @@ Neo4j may require some tinkering to get working. You should try to get it runnin
 
 Notes
 =====
+
+## Production
 Server doesn't support HTTPS, so put it behind nginx or something. HTTPS must be
 used to protect the password (sent during login) and session cookie.
 
