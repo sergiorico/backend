@@ -1,9 +1,20 @@
 Getting Started
 ===============
 
+This file is dedicated to getting you ready to start developing. If you have questions, head over to our [slack](https://serp-group.slack.com) channel and fire away!
+
 ## Backend
 
-### Setup
+We start with the backend, simply because it is required for you to have any functionality on the frontend. A high-level checklist is:
+
+ - install java 8 (sdk & jre)
+ - install maven version 3
+ - install neo4j version 2.X.Y
+ - logon `localhost:7474` and change password
+ - update password in `application.properties` in repo.
+ - start with `mvn exec:java -Dpippo.mode=dev`
+
+### Setting up the backend
 
 #### java 8
 Java 8 (SDK & JRE) is required. Almost all os have a standard way of installing and upgrading java. These guides may work for you, but ideally you should look it up.
@@ -116,9 +127,16 @@ To use Eclipse, simply import the backend files as a github repository. We recom
 
 ## Frontend
 
-### Setup
+The frontend project is often much simpler to install since it only depends on nodejs, thus this section is mainly on how to install nodejs. The high-level checklist is:
 
-#### nodejs
+ - install nodejs (v5 or v6)
+ - run `npm install` in repo.
+ - run `make dev`
+ - browse to `localhost:8181`
+
+### Setting up the frontend
+
+#### installing nodejs
 
 The frontend relies on nodejs to compile page templates and style files. Node.js has its own package manager, called `npm`, which lists dependencies in a `package.json` file. Thus the only programs you need to manually install are `npm` and `node`. Thankfully, `npm` is bundled with `node` so installing `node` is sufficient.
 
@@ -143,11 +161,11 @@ Most popular linux distros have up-to-date packages of `node` and this is the ea
 
 If this fails you must download a tarball and put `node` and `npm` into `/usr/bin` or similar. Some linuxes have a program called `alternative` to symlink files into `/usr/bin`. 
 
-#### packages
+#### installing packages
 
 Type `npm install` in the repository to install all dependencies. Then try to run the dev. server using `make dev`. If this fails, report to Axel. Otherwise you are good to go!
 
-### Design
+### Overview
 
 Here is an overview of the different components that make up the frontend. 
 ![img](../images/frontend.svg) 

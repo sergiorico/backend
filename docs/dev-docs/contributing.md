@@ -3,14 +3,15 @@ Contributing
 
 This file is mirrored [here](https://raw.githubusercontent.com/emenlu/connect/master/CONTRIBUTING.md).
 
-
 Licensing
 ---------
 connect is licensed under the BSD 2-clause license.
 
 Documentation
 -------------
-All documentation is avaiable at [readthedocs](https://serpconnect.rtfd.io) for developer guides.
+All documentation is avaiable at [readthedocs](http://serpconnect.rtfd.io) for developer guides.
+
+Join our [slack](https://serp-group.slack.com) channel for questions and other stuff!
 
 Depedencies
 -----------
@@ -19,6 +20,8 @@ Connect itself is mainly built on [pippo](https://pippo.ro) and [jcypher](https:
  - maven 3.X.Y ([website](https://maven.apache.org/index.html))
  - java 1.8
  - neo4j 2.X.Y ([website](https://neo4j.com/download/other-releases/))
+
+For more information about getting started, see the documentation.
 
 Versioning strategy
 -------------------
@@ -52,3 +55,6 @@ Landing the PR
  - It is recommended (but not *required*) to rebase your commits into a clean flow (to simplify review)
  - Mention @emenlu when your PR is ready and she will assign someone to poke at it 
 
+Students @ LTH
+--------------
+For students at LTH, Lunds University there exists a public Trello board [here](https://trello.com/b/5h2wb7wz/connect-open-tasks). Tasks from this board can give you some $$$ when completed.
