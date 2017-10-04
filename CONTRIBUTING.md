@@ -7,7 +7,7 @@ connect is licensed under the BSD 2-clause license.
 
 Documentation
 -------------
-All documentation is avaiable at [readthedocs](https://serpconnect.rtfd.io) for developer guides.
+All documentation is avaiable at [readthedocs](http://serpconnect.rtfd.io) for developer guides.
 
 Depedencies
 -----------
