@@ -1,5 +1,5 @@
 digraph G {
-    label = "Connect Backend Overview\nupdated 2017-01-31"
+    label = "Connect Backend Overview\nupdated 2017-09-04"
     compound = true;
 
     graph [ fontname="monospace" fontsize=12 ]
@@ -34,6 +34,30 @@ digraph G {
     RequestException [
         label = "{RequestException}"
     ]
+
+    subgraph clusterEvents {
+        label = "Events"
+
+        UserEvent
+
+        DeleteAccountEvent
+        DeleteCollectionEvent
+        DeleteEntryEvent
+        DetachEntryEvent
+        LeaveCollectionEvent
+    }
+
+    edge [ arrowhead = "empty" ]
+    DeleteAccountEvent -> UserEvent
+    DeleteCollectionEvent -> UserEvent
+    DeleteEntryEvent -> UserEvent
+    DetachEntryEvent -> UserEvent
+    LeaveCollectionEvent -> UserEvent
+    edge [ arrowhead = "none" ]
+    DeleteAccountEvent -> LeaveCollectionEvent
+    LeaveCollectionEvent -> DeleteCollectionEvent
+    DetachEntryEvent -> DeleteEntryEvent
+
 
     subgraph clusterModules {
         label = "Modules"
