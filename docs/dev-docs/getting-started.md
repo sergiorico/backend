@@ -3,7 +3,7 @@ Getting Started
 
 ## Backend
 
-### Preparing your workstation
+### Setup
 
 #### java 8
 Java 8 (SDK & JRE) is required. Almost all os have a standard way of installing and upgrading java. These guides may work for you, but ideally you should look it up.
@@ -102,63 +102,68 @@ The design is very simple:
  - The two exceptions (`DatabaseException.java` and `RequestException.java`) are thrown by handlers and handled by a function in `Connect.java`, like a bubble-style event.
  - Database access is only done through the `Database.java` class, it is also responsible for parsing any database errors and throwing a `DatabaseException` if needed.
 
-### Workflow
- - Find issue on github. 
- - Pull latest updates from master.
- - Create a new branch with a sensible name and switch to it.
- - Implement changes in your favorite IDE, Eclipse is recommended for backend.
- - Write test case for backend changes if relevant.
- - Document changes.
- - Commit the changes with a sensible comment no longer than 50 characters.
- - Pull latest changes.
- - Push the changes and create a pull request.
-
-## Tips for backend
- - A graph-database called Neo4j is used as our database. Quickest way to get up to speed of what it is and how it works is to visit their website. Neo4j have a graphical interface which is located at
-`http://localhost:7474/browser/` when it's started. This can be helpful in the beginning to try commands
+### Tips
+ - We use a graph-database called Neo4j. The quickest way to get up to speed of what it is and how it works is to visit their website. 
+ - Neo4j runs a graphical interface located at
+`http://localhost:7474/browser/`. This very helpful to try and prototype commands
 and later to see if correct connections and data was added to the database.
- - jcypher is used for querying the database from the backend much like SQL but with different syntax.
-There are somewhat limited documentation of jcypher but there are some examples on their github wiki.
-Easiest is probably to look at how things are done in the connect.routes package. Note that jcypher can't
-always translate a Neo4j query directly. But everything that can be achieved by Neo4j querying can be achieved
-in someway with jcypher. 
- - The application.properties file has to be configurated with the right settings in order to run the database and other applications.
+ - jcypher is used for querying the database from the backend much like SQL but with different syntax. The documentation is somewhat limited but there are examples on their github wiki. You should probably look at how things are done in the connect.routes package before trying your luck at the wiki, though. Note that jcypher can't
+always translate a Neo4j query directly. 
+ - The `application.properties` file has to be updated with the correct username and password for neo4j database.
 
 ### Eclipse
 To use Eclipse, simply import the backend files as a github repository. We recommend using a maven plugin to facilitate running the server. 
 
 ## Frontend
 
+### Setup
+
+#### nodejs
+
+The frontend relies on nodejs to compile page templates and style files. Node.js has its own package manager, called `npm`, which lists dependencies in a `package.json` file. Thus the only programs you need to manually install are `npm` and `node`. Thankfully, `npm` is bundled with `node` so installing `node` is sufficient.
+
+Type `node -v` in a terminal to check version:
+ - v5 and v6 are confirmed to work with the connect frontend
+ - v7 and v8 are unknown
+
+If you already have node v7 or v8 then you should install a version manager to switch between multiple version. Here are a few, though some only support specific operating systems:
+ - [nvm](https://github.com/creationix/nvm)
+ - [n](https://github.com/tj/n)
+ - [nvs](https://github.com/jasongin/nvs)
+
+The actual steps for installing Node.js vary depending on your operating system. 
+
+**windows**: Download the installer and run it. It will install `node` and `npm` and put them in your `%PATH%`.
+
+**mac os**: Install with [homebrew](https://brew.sh). `brew install node@6`
+
+**linux**
+
+Most popular linux distros have up-to-date packages of `node` and this is the easiest way to install nodejs. There is a guide [here](https://nodejs.org/en/download/package-manager/) on doing this.
+
+If this fails you must download a tarball and put `node` and `npm` into `/usr/bin` or similar. Some linuxes have a program called `alternative` to symlink files into `/usr/bin`. 
+
+#### packages
+
+Type `npm install` in the repository to install all dependencies. Then try to run the dev. server using `make dev`. If this fails, report to Axel. Otherwise you are good to go!
+
+### Design
+
 Here is an overview of the different components that make up the frontend. 
 ![img](../images/frontend.svg) 
  
 The structure is quite straightforward:
  - We use jade, less and js to make up the webpages. The less and js files both have a base file which they are dependent on, then each page sub-levels down to have it’s unique properties which the rest of each pages sub-levels depend on.
- - Jquery v1.8 is used and is imported via the base class so this is standard across all pages.
- - For CSS, Less is used. Structurally we have a working files folder which divides the pages up and then it is imported into an all.less file which is converted into one CSS file, this is so the website only has to load this page once.
- - There are many scripts set up to make development of the site easier, these scripts search for updates in the Less, Jade and js files and as the contributor make these changes they will update automatically with immediate effect provided there are no errors for the compiler.
- - There is also two api end points, one for the live working version of the website and the other for when in development mode.
+ - Jquery v3 is used and is imported via the base class so this is standard across all pages.
+ - For styling, LESS is used. Structurally we have a working files folder which divides the pages up and then it is imported into an `all.less` file which is converted into one CSS file.
+ - There are two api files: `api.js` and `api-dev.js`. The `api-dev.js` file only changes the server to which the ajax queries from `api.js` are made.
 
-### Workflow
- - Find issue on github.
- - Pull latest updates from master.
- - Create a new branch with a sensible name and switch to it.
- - Make sure neo4j and backend servers are running. 
-   backend: cd connect && mvn compile exec:java
- - Run local web server @ port 8181 with XHR/AJAX against local 8080
- - Use make files to have development scripts runnning to update changes on the fly.
- - Implement changes in your favorite IDE, Atom is recommended for frontend.
- - Recommended browsers to test on are Chrome, Firefox & Safari.
- - Write test case for frontend changes if relevant.
- - Document changes.
- - Commit the changes with a sensible comment no longer than 50 characters.
- - Pull latest changes.
- - Push the changes and create a pull request.
-
-## Tips for Frontend
- - Node.js is used so it is recommended that you use versions 5 or 6 which both work with the current version of the site.
- - It can be important to use the make clean file every now and then to be sure nothing is cached and the changes implemented are what you have made.
- - There are a few utilities which are used across some of the pages. They can be found in src/js/util. One example is el.js which is used to efficiently create elements. It Is encouraged to use these utilities where possible to keep the coding consistent.
- - There is no need to compile after changes have been made to see effect. Simply save the file and update the localhost website to see the changes. 
+### Tips for Frontend
+ - It can be important to run `make clean` every now and then to be sure nothing is cached and the changes implemented are what you have made. **`make clean` is run automatically when running any make command.**
+ - There are a few utilities which are used across some of the pages. They can be found in `src/js/util`. 
+  - One example is el.js which is used to efficiently create elements. It is encouraged to use these utilities where possible to keep the coding consistent.
+ - There is no need to (re)build after _modifying_ any files. Simply save the file and reload localhost website to see the changes. 
+ - If you add new views, then add them to `app.js`.
+ - If you add new LESS files, add them to `src/less/all.less`.
 
 
