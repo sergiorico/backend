@@ -139,8 +139,8 @@ public class Collection extends BackendRouter {
             });
 
         	if (res.resultOf(new JcBoolean("ok")).size() == 0)
-        		throw new RequestException("id does not exist in database");
-
+                throw new RequestException("id does not exist in database");
+            
             rc.next();
         });
 
@@ -289,7 +289,7 @@ public class Collection extends BackendRouter {
                 throw new RequestException("Not invited to that collection.");
         });
 
-        // Must be logged in AND member of collection to proceed
+        // Must be logged in AND member of collection to proceed (or ADMIN)
         ALL("/{id}/.*", (rc) -> {
             final String email = rc.getSession("email");
             final int id = rc.getParameter("id").toInt();
@@ -304,9 +304,19 @@ public class Collection extends BackendRouter {
                 NATIVE.cypher("RETURN TRUE AS ok")
             });
 
-            if (res.resultOf(new JcBoolean("ok")).size() == 0)
-                throw new RequestException(403, "You are not a member of that collection");
-
+            /* allow admins to do whatever they want */
+            boolean isAdmin = false;
+            if (email != null) {
+                AccountSystem.Account user = AccountSystem.findByEmail(email);
+                if (TrustLevel.authorize(user.trust, TrustLevel.ADMIN)) {
+                    isAdmin = true;
+                }
+            }
+            
+            if (res.resultOf(new JcBoolean("ok")).size() == 0 && !isAdmin)
+            throw new RequestException(403, "You are not a member of that collection");
+            
+            rc.setLocal("admin", isAdmin);
             rc.next();
         });
         
