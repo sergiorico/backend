@@ -11,8 +11,7 @@ import static org.junit.Assert.assertTrue;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.jayway.restassured.filter.session.SessionFilter;
 
-import se.lth.cs.connect.events.DeleteAccountEvent;
-import se.lth.cs.connect.events.LeaveCollectionEvent;
+import se.lth.cs.connect.events.*;
 
 
 
@@ -26,7 +25,21 @@ public class ITEvents extends APITest {
 	public void setUp() {
         super.setUp();
         basePath = "/v1/collection/" + collectionId;
-	}
+    }
+    
+    @Test
+    public void entryWithoutCollectionShouldDie() {
+        String entryJson =  "{ \"entryType\": \"challenge\", " + 
+            "\"description\": \"test\", " +
+            "\"serpClassification\": { }, " +
+            "\"collection\": " + collectionId + 
+        " }";
+		long entryId = ITCollectionAPI.submitEntry(userSession, collectionId, entryJson);
+
+        new DetachEntryEvent(collectionId, entryId).execute();;
+
+        expect().statusCode(400).when().get("/v1/entry/" + entryId);
+    }
 
     @Test
     public void testCollectionNuke() {
