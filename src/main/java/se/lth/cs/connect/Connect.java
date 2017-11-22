@@ -3,6 +3,7 @@ package se.lth.cs.connect;
 import ro.pippo.core.Application;
 import ro.pippo.core.ExceptionHandler;
 import ro.pippo.core.Pippo;
+import ro.pippo.core.PippoRuntimeException;
 import ro.pippo.core.PippoSettings;
 import ro.pippo.core.route.Route;
 import ro.pippo.core.route.RouteContext;
@@ -16,11 +17,22 @@ import se.lth.cs.connect.routes.Admin;
 import se.lth.cs.connect.routes.Collection;
 import se.lth.cs.connect.routes.Entry;
 import utils.CleanupUsers;
+import utils.CORS;
 
 /**
  * Default addr and neo4j credentials are read from conf/application.properties
  */
 public class Connect extends Application {
+
+	static final String[] CORS_ORIGINS = new String[] { 
+		"http://localhost:8181", 
+		"https://localhost:8181", 
+		"http://localhost:8080",
+		"http://serpconnect.cs.lth.se",  /* we should deny this one */
+		"http://api.serpconnect.cs.lth.se", 
+		"https://serpconnect.cs.lth.se",
+		"https://api.serpconnect.cs.lth.se" 
+	};
 
 	private MailClient mailClient;
 
@@ -41,32 +53,10 @@ public class Connect extends Application {
 		// Use the ordinary mailman by default
 		useMailClient(new Mailman());
 
-		final String[] allowedOrigins = new String[] { "http://localhost:8181", "http://localhost:8080",
-				"https://localhost:8181", "http://serpconnect.cs.lth.se", "http://api.serpconnect.cs.lth.se", "https://serpconnect.cs.lth.se",
-				"https://api.serpconnect.cs.lth.se" };
+		// Specify which Origin headers that may access the site
+		ANY(".*", new CORS(CORS_ORIGINS));
 
-		ALL(".*", (rc) -> {
-			String origin = rc.getHeader("Origin");
-			boolean originOk = false;
-
-			for (String allowed : allowedOrigins) {
-				if (allowed.equals(origin)) {
-					originOk = true;
-					break;
-				}
-			}
-
-			if (!originOk && origin != null)
-				throw new RequestException("CORS for this origin is not allowed");
-
-			if (origin != null) {
-				rc.setHeader("Access-Control-Allow-Origin", origin);
-				rc.setHeader("Access-Control-Allow-Credentials", "true");
-				rc.setHeader("Access-Control-Allow-Headers", "*");
-			}
-			rc.next();
-		});
-
+		// Specify which http methods CORS requests can use
 		getRouter().addRoute(new Route("OPTIONS", ".*", (rc) -> {
 			rc.setHeader("Access-Control-Allow-Methods", "PUT, POST, OPTIONS");
 			rc.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -74,10 +64,11 @@ public class Connect extends Application {
 			rc.getResponse().ok();
 		}));
 
-		use("/v1/admin", new Admin(this));
-		use("/v1/entry", new Entry(this));
-		use("/v1/account", new Account(this));
-		use("/v1/account", new Collection(this));
+		// Register all routes
+		use(new Admin(this));
+		use(new Entry(this));
+		use(new Account(this));
+		use(new Collection(this));
 
 		getErrorHandler().setExceptionHandler(RequestException.class, new ExceptionHandler() {
 			@Override
@@ -89,16 +80,22 @@ public class Connect extends Application {
 				rc.text().send(e.getMessage());
 			}
 		});
+		
+		getErrorHandler().setExceptionHandler(Exception.class, new ExceptionHandler(){
+		
+			@Override
+			public void handle(Exception exception, RouteContext routeContext) {
+				
+				routeContext.status(404).text().send("Not found.");
+			}
+		});
 
 	}
 
-	// For now, ignore the 'prefix' b/c it's hardcoded in each module (as
-	// PREFIX)
-	private void use(String prefix, Router source) {
+	/* Dump routes from source into app router */
+	private void use(Router source) {
 		Router target = getRouter();
 
-		// RouteGroup is available @ master which can set a prefix for routes
-		// in a group. Will enable us to mount a router onto a specific path.
 		for (Route r : source.getRoutes()) {
 			target.addRoute(r);
 		}
