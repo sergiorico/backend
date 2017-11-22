@@ -80,16 +80,6 @@ public class Connect extends Application {
 				rc.text().send(e.getMessage());
 			}
 		});
-		
-		getErrorHandler().setExceptionHandler(Exception.class, new ExceptionHandler(){
-		
-			@Override
-			public void handle(Exception exception, RouteContext routeContext) {
-				
-				routeContext.status(404).text().send("Not found.");
-			}
-		});
-
 	}
 
 	/* Dump routes from source into app router */

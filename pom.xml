@@ -17,7 +17,7 @@
         <java.version>1.8</java.version>
 
         <!-- pippo (framework) and slf4j (logger) versions -->
-        <pippo.version>0.9.1</pippo.version>
+        <pippo.version>1.6.0</pippo.version>
         <slf4j.version>1.7.7</slf4j.version>
     </properties>
 
