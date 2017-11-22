@@ -41,6 +41,7 @@ Email templates are located: `src/main/resources/conf/messages_en.properties`
 
 We are using some maven plugins(?) to handle testing, execution and packaging:
  - to run (dev,default=prod): `mvn compile exec:java -Dpippo.mode=dev`
+ - see debug level output: `-Dorg.slf4j.simpleLogger.defaultLogLevel=trace`
  - to clean: `mvn clean` (do this when in doubt)
  - to build: `mvn package`
  - to test: `mvn verify`
@@ -49,6 +50,7 @@ Deploying (production mode):
  - `mvn package` --> `target/connect-X.Y.Z.zip`
  - `unzip connect-X.Y.Z`
  - `cd connect-X.Y.Z`
+ - `cp ~/path/to/application.properties .`
  - `java -jar connect-X-Y-Z.jar`
 
 Got a secret config. file? Just copy it to the same folder as the jar:
