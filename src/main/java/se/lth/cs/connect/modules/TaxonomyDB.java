@@ -50,7 +50,12 @@ public class TaxonomyDB {
         dbPath = props.getString("connect.taxonomy.txdb", "./txdb");
         
         serpPath = props.getString("connect.taxonomy.serp", "./txdb/serp.json");
-        SERP_TAXONOMY = taxonomyOf(readTaxonomyFile(new File(serpPath)));
+        try {
+            SERP_TAXONOMY = taxonomyOf(readTaxonomyFile(new File(serpPath)));
+        } catch (RequestException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
     }
     
     public static String getPath(long collectionId) {
