@@ -42,6 +42,7 @@ import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.TaxonomyDB;
 import se.lth.cs.connect.modules.TaxonomyDB.Facet;
+import se.lth.cs.connect.modules.TaxonomyDB.Taxonomy;
 import se.lth.cs.connect.routes.Entry.TaxonomyFacet;
 
 /**
@@ -86,16 +87,22 @@ public class Collection extends BackendRouter {
 	protected void setup(PippoSettings conf) {
 
         // POST api.serpconnect.cs.lth.se/v1/collection HTTP/1.1
-        // name=blabla
+        // name=blabla project=blabla
         POST("/", (rc) -> {
             String email = rc.getSession("email");
-            if (email == null)
+            if (email == null || email.isEmpty())
                 throw new RequestException(401, "Must be logged in.");
 
-            String name = rc.getParameter("name").toString();
-            if (name == null || name.isEmpty())
+            if (rc.getParameter("name").isNull() || rc.getParameter("name").isEmpty())
                 throw new RequestException("No name parameter");
-
+                
+            if (rc.getParameter("project").isNull() || rc.getParameter("project").isEmpty())
+                throw new RequestException("No project parameter");
+                
+            final String project = rc.getParameter("project").toString();
+            final String name = rc.getParameter("name").toString();
+            
+            final JcNode proj = new JcNode("p");
             final JcNode usr = new JcNode("u");
             final JcNumber id = new JcNumber("x");
             final JcNode coll = new JcNode("c");
@@ -103,16 +110,18 @@ public class Collection extends BackendRouter {
             //usr-(member_of)->coll-(owner)->user
             JcQueryResult res = Database.query(Database.access(), new IClause[]{
                 MATCH.node(usr).label("user").property("email").value(email),
+                MATCH.node(proj).label("project").property("name").value(project),
                 CREATE.node(usr).relation().type("MEMBER_OF").out()
                     .node(coll).label("collection")
                     .property("name").value(name)
                     .relation().type("OWNER").out().node(usr),
+                CREATE.node(coll).relation().type("EXTENDS").out().node(proj),
                 RETURN.value(coll.id()).AS(id)
             });
             
             int collectionId = res.resultOf(id).get(0).intValue();
             try {
-				TaxonomyDB.update(collectionId, new TaxonomyDB.Taxonomy());
+				TaxonomyDB.update(TaxonomyDB.collection(collectionId), new TaxonomyDB.Taxonomy());
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
 			}
@@ -168,7 +177,7 @@ public class Collection extends BackendRouter {
         // { version: number, taxonomy: [...] } 
         GET("/{id}/taxonomy", (rc) -> {
         	final int id = rc.getParameter("id").toInt();
-        	rc.json().send(TaxonomyDB.readCollectionTaxonomy(id));
+        	rc.json().send(TaxonomyDB.collection(id));
         });
 
         // GET api.serpconnect.cs.lth.se/{id}/stats HTTP/1.1
@@ -448,6 +457,8 @@ public class Collection extends BackendRouter {
             final JcNode entity = new JcNode("x");
             final JcRelation facet = new JcRelation("f");
             final JcNumber entityId = new JcNumber("d");
+            final JcString projectName = new JcString("pid");            
+            final JcNode project = new JcNode("cp");
             final JcString facetType = new JcString("t");
             
             final JcQueryResult rr = Database.query(rc.getLocal("db"), new IClause[]{
@@ -464,21 +475,28 @@ public class Collection extends BackendRouter {
             
             final JcQueryResult cqr = Database.query(rc.getLocal("db"), new IClause[]{
             	MATCH.node(coll).label("collection"),
-            	WHERE.valueOf(coll.id()).EQUALS(id),
+                WHERE.valueOf(coll.id()).EQUALS(id),
+                MATCH.node(project).label("project")
+                    .relation().type("EXTENDS").node(coll),
         		graphNode.create(entry),
         		CREATE.node(entry)
         			.relation().type("CONTAINS").out()
         			.node(coll),
-        		RETURN.value(entry.id()).AS(entityId)
+                RETURN.value(entry.id()).AS(entityId),
+                RETURN.value(project.property("name")).AS(projectName)
             });
 
+            
             // Only copy classification relations if they exist in the
             // extended or default taxonomy.
+            final String projectId = cqr.resultOf(projectName).get(0);
+            final TaxonomyDB.Taxonomy baseTaxonomy = TaxonomyDB.taxonomyOf(TaxonomyDB.project(projectId));
             ArrayList<String> taxonomy = new ArrayList<String>();
-            for (Facet f : TaxonomyDB.SERP().taxonomy)
+            for (Facet f : baseTaxonomy.taxonomy)
             	taxonomy.add(f.id);
             
-        	for (Facet f : TaxonomyDB.taxonomyOf(id).taxonomy)
+            final TaxonomyDB.Taxonomy collectionTaxonomy = TaxonomyDB.taxonomyOf(TaxonomyDB.collection(id));
+        	for (Facet f : collectionTaxonomy.taxonomy)
         		taxonomy.add(f.id);
             
         	final long newEntryId = cqr.resultOf(entityId).get(0).longValue();
@@ -640,8 +658,9 @@ public class Collection extends BackendRouter {
 				throw new RequestException("Illegal JSON");
 			} catch (IOException e) {
 				throw new RequestException("Illegal JSON");
-			}
-            long current = TaxonomyDB.taxonomyOf(id).version;
+            }
+            final String ctx = TaxonomyDB.collection(id);
+            long current = TaxonomyDB.taxonomyOf(ctx).version;
             
             if (req.version < current)
                 throw new RequestException("Out of date version. Stored=" + 
@@ -651,7 +670,7 @@ public class Collection extends BackendRouter {
             	req.version += 1;
             
 			try {
-				TaxonomyDB.update(id, req);
+				TaxonomyDB.update(ctx, req);
 			} catch (JsonProcessingException e) {
 				throw new RequestException("Sneaky illegal JSON");
 			}

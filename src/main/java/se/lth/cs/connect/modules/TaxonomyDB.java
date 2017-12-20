@@ -28,9 +28,8 @@ import se.lth.cs.connect.RequestException;
 * Update taxonomy.
 */
 public class TaxonomyDB {
-	static String dbPath;
-	static String serpPath;
-	static Taxonomy SERP_TAXONOMY;
+    static String projectsPath;
+    static String collectionsPath;
     
     public static class Facet {
     	public String name, id, parent;
@@ -45,60 +44,43 @@ public class TaxonomyDB {
     		taxonomy = new ArrayList<Facet>();
     	}
     }
+
+    /*
+     * /txdb
+     *     /projects
+     *              /<id>.json
+     *     /collections
+     *              /<id>.json
+     */
     
     public static void configure(PippoSettings props) {
-        dbPath = props.getString("connect.taxonomy.txdb", "./txdb");
+        String dbPath = props.getString("connect.taxonomy.txdb", "./txdb");
         
-        serpPath = props.getString("connect.taxonomy.serp", "./txdb/serp.json");
-        try {
-            SERP_TAXONOMY = taxonomyOf(readTaxonomyFile(new File(serpPath)));
-        } catch (RequestException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-        }
-    }
-    
-    public static String getPath(long collectionId) {
-        return dbPath + "/" + "c-" + collectionId + ".json";
-    }
-    
-    private static String readTaxonomyFile(File file) {
-    	try {
-        	char[] data = new char[(int) file.length()];
-        	final BufferedReader reader = new BufferedReader(new FileReader(file));
-        	reader.read(data);
-        	reader.close();
-        	return String.valueOf(data);
-        } catch (IOException e) {
-            throw new RequestException("Error reading taxonomy from file");
-        }
+        projectsPath = dbPath + "/projects";
+        collectionsPath = dbPath + "/collections";
     }
 
-    public static String readCollectionTaxonomy(long collectionId) {
-        final String txPath = getPath(collectionId);
-        return readTaxonomyFile(new File(txPath));
+    public static String collection(long collectionId) {
+        return collectionsPath + "/" + "c-" + collectionId + ".json";
     }
-    
-    private static Taxonomy taxonomyOf(String tx) {
+        
+    /**
+     * Read the taxonomy of a project: serp, serp-test, serp-rto, ...
+     */
+    public static String project(String pname) {
+        return projectsPath + "/" + pname + ".json";
+    }
+
+    public static Taxonomy taxonomyOf(String path) {
     	try {
-    		return (new ObjectMapper()).readValue(tx, Taxonomy.class);
+    		return (new ObjectMapper()).readValue(read(path), Taxonomy.class);
     	} catch (Exception e) {
     		System.err.println("TaxonomyDB.taxonomyOf: " + e.getMessage());
     		return null;
     	}
     }
-    
-    public static Taxonomy taxonomyOf(long collectionId) {
-    	final String tx = readCollectionTaxonomy(collectionId);
-    	return taxonomyOf(tx);
-    }
-    
-    public static long version(long collectionId) {
-    	return taxonomyOf(collectionId).version;
-    }
   
-    public static void write(long collectionId, String serialized) {
-        final String txPath = getPath(collectionId);
+    public static void write(String txPath, String serialized) {
         try {
             final FileOutputStream fos = new FileOutputStream(new File(txPath));
             final BufferedOutputStream bos = new BufferedOutputStream(fos, 128*100);
@@ -110,14 +92,21 @@ public class TaxonomyDB {
         }
     }
     
-    public static void update(long collectionId, Taxonomy taxonomy) throws JsonProcessingException {
-    	//increment(collectionId);
+    public static void update(String path, Taxonomy taxonomy) throws JsonProcessingException {
     	ObjectMapper mapper = new ObjectMapper();
-    	write(collectionId, mapper.writeValueAsString(taxonomy));
+    	write(path, mapper.writeValueAsString(taxonomy));
     }
 
-	public static Taxonomy SERP() {
-		return SERP_TAXONOMY;
-	}
-
+    public static String read(String path) {
+        final File file = new File(path);
+    	try {
+        	char[] data = new char[(int) file.length()];
+        	final BufferedReader reader = new BufferedReader(new FileReader(file));
+        	reader.read(data);
+        	reader.close();
+        	return String.valueOf(data);
+        } catch (IOException e) {
+            throw new RequestException("Error reading taxonomy from file");
+        }
+    }
 }

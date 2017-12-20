@@ -3,7 +3,6 @@ package se.lth.cs.connect;
 import ro.pippo.core.Application;
 import ro.pippo.core.ExceptionHandler;
 import ro.pippo.core.Pippo;
-import ro.pippo.core.PippoRuntimeException;
 import ro.pippo.core.PippoSettings;
 import ro.pippo.core.route.Route;
 import ro.pippo.core.route.RouteContext;
@@ -16,8 +15,9 @@ import se.lth.cs.connect.routes.Account;
 import se.lth.cs.connect.routes.Admin;
 import se.lth.cs.connect.routes.Collection;
 import se.lth.cs.connect.routes.Entry;
-import utils.CleanupUsers;
+import se.lth.cs.connect.routes.Project;
 import utils.CORS;
+import utils.CleanupUsers;
 
 /**
  * Default addr and neo4j credentials are read from conf/application.properties
@@ -28,10 +28,14 @@ public class Connect extends Application {
 		"http://localhost:8181", 
 		"https://localhost:8181", 
 		"http://localhost:8080",
-		"http://serpconnect.cs.lth.se",  /* we should deny this one */
-		"http://api.serpconnect.cs.lth.se", 
+
+		"http://serpconnect.cs.lth.se",
 		"https://serpconnect.cs.lth.se",
-		"https://api.serpconnect.cs.lth.se" 
+
+		"https://test.serpconnect.cs.lth.se",
+		
+		"http://api.serpconnect.cs.lth.se", 
+		"https://api.serpconnect.cs.lth.se"
 	};
 
 	private MailClient mailClient;
@@ -69,6 +73,7 @@ public class Connect extends Application {
 		use(new Entry(this));
 		use(new Account(this));
 		use(new Collection(this));
+		use(new Project(this));
 
 		getErrorHandler().setExceptionHandler(RequestException.class, new ExceptionHandler() {
 			@Override

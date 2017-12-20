@@ -21,6 +21,7 @@ import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.values.JcBoolean;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
@@ -188,23 +189,27 @@ public class Entry extends BackendRouter {
     protected void setup(PippoSettings conf) {
         // GET / --> {nodes:[], edges:[]}
         GET("", (rc) -> {
+            final String projectName = rc.getParameter("project").toString();
+            JcNode proj = new JcNode("proj");
             JcNode node = new JcNode("entry");
             JcRelation rel = new JcRelation("rel");
 
             JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node(proj).label("project").property("name").value(projectName),
                 MATCH.node(node).label("entry"),
-                WHERE.NOT().has(node.property("pending")),
+                WHERE.existsPattern(
+                    X.node(proj)
+                        .relation().type("EXTENDS")
+                    .node().label("collection")
+                        .relation().type("CONTAINS")
+                    .node(node))
+                    .AND().NOT().has(node.property("pending")),
                 OPTIONAL_MATCH.node(node).relation(rel).out().node().label("facet"),
                 RETURN.value(node),
                 RETURN.value(rel)
             });
 
             rc.json().send(new Graph(res.resultOf(node), res.resultOf(rel)));
-        });
-
-        // GET /taxonomy --> {version:X, taxonomy:[{id,name,parent}]}
-        GET("/taxonomy", (rc) -> {
-            rc.json().send(TaxonomyDB.SERP());
         });
 
         // GET /{id} --> {entry}
