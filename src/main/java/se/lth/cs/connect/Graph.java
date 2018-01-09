@@ -76,6 +76,42 @@ public class Graph {
         }
     }
 
+    public static class Project {
+        public String name, link;
+
+        public Project(GrNode project) {
+            for (GrProperty prop : project.getProperties()) {
+                switch (prop.getName()) {
+                    case "name": name = prop.getValue().toString(); break;
+                    case "link": link = prop.getValue().toString(); break;
+                    default: break;
+                }
+            }
+        }
+
+        public static Project[] fromList(List<GrNode> matches) {
+            HashSet found = new HashSet<User>(matches.size());
+            for (int i = 0; i < matches.size(); i++) {
+                if (matches.get(i) != null)
+                    found.add(new Project(matches.get(i)));
+            }
+            Project[] projects = new Project[found.size()];
+            found.toArray(projects);
+            return projects;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (! (o instanceof Project)) return false;
+            return ((Project)o).name.equals(name);
+        }
+
+        @Override
+        public int hashCode(){
+            return name.hashCode();
+        }
+    }
+
     public static class Collection {
         public String name;
         public long id;
@@ -192,16 +228,16 @@ public class Graph {
 			iot.jcypher.query.api.pattern.Node node = CREATE.node(bind)
 				.label("entry").label(type)
 				.property("hash").value(hash);
-			
+
 			if (type.equals("research")) {
 				return node
 						.property("reference").value(reference)
 						.property("doi").value(doi);
 			}
-			
+
 			return node.property("description").value(description);
 		}
-		
+
 		public IClause create() { return create(new JcNode("copy")); }
     }
 

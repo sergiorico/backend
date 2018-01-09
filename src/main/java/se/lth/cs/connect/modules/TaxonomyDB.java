@@ -30,15 +30,15 @@ import se.lth.cs.connect.RequestException;
 public class TaxonomyDB {
     static String projectsPath;
     static String collectionsPath;
-    
+
     public static class Facet {
     	public String name, id, parent;
     }
-    
+
     public static class Taxonomy {
     	public List<Facet> taxonomy;
     	public long version;
-    	
+
     	public Taxonomy() {
     		version = 0;
     		taxonomy = new ArrayList<Facet>();
@@ -52,10 +52,10 @@ public class TaxonomyDB {
      *     /collections
      *              /<id>.json
      */
-    
+
     public static void configure(PippoSettings props) {
         String dbPath = props.getString("connect.taxonomy.txdb", "./txdb");
-        
+
         projectsPath = dbPath + "/projects";
         collectionsPath = dbPath + "/collections";
     }
@@ -63,7 +63,7 @@ public class TaxonomyDB {
     public static String collection(long collectionId) {
         return collectionsPath + "/" + "c-" + collectionId + ".json";
     }
-        
+
     /**
      * Read the taxonomy of a project: serp, serp-test, serp-rto, ...
      */
@@ -79,7 +79,7 @@ public class TaxonomyDB {
     		return null;
     	}
     }
-  
+
     public static void write(String txPath, String serialized) {
         try {
             final FileOutputStream fos = new FileOutputStream(new File(txPath));
@@ -91,7 +91,7 @@ public class TaxonomyDB {
             throw new RequestException("Error writing taxonomy to file: " + e.getMessage());
         }
     }
-    
+
     public static void update(String path, Taxonomy taxonomy) throws JsonProcessingException {
     	ObjectMapper mapper = new ObjectMapper();
     	write(path, mapper.writeValueAsString(taxonomy));
@@ -106,7 +106,8 @@ public class TaxonomyDB {
         	reader.close();
         	return String.valueOf(data);
         } catch (IOException e) {
-            throw new RequestException("Error reading taxonomy from file");
+            // TODO: Detect type of IO exception: enoent, other
+            throw new RequestException(404, "No such taxonomy.");
         }
     }
 }

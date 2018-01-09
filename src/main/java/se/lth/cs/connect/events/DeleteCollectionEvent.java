@@ -69,7 +69,7 @@ public class DeleteCollectionEvent implements UserEvent {
         for (BigDecimal eid : res.resultOf(entryId))
             new DetachEntryEvent(cid, eid.longValue()).execute();
     }
-    
+
     private void deleteTaxonomy() {
 		new File(TaxonomyDB.collection(cid)).delete();
     }
@@ -80,7 +80,7 @@ public class DeleteCollectionEvent implements UserEvent {
         Database.query(Database.access(), new IClause[]{
             MATCH.node(collection).label("collection"),
             WHERE.valueOf(collection.id()).EQUALS(cid),
-            DO.DELETE(collection)
+            DO.DETACH_DELETE(collection) /* rel to project still exists */
         });
     }
 }

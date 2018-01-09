@@ -64,25 +64,25 @@ public class Collection extends BackendRouter {
         inviteTemplate = msg.get("pippo.collectioninvite", "en");
         inviteNewUserTemplate = msg.get("pippo.collectioninvitenewuser", "en");
 		inviteActionTemplate = msg.get("pippo.collectioninviteaction", "en");
-		
+
         frontend = app.getPippoSettings().getString("frontend", "http://localhost:8181");
     }
-    
-    /** 
+
+    /**
      * JSON request body for /collection/{id}/reclassify
      */
-    static class ReclassifyRequest 
+    static class ReclassifyRequest
     {
     	@JsonProperty("oldFacetId")
     	public String oldFacetId;
-    	
+
     	@JsonProperty("newFacetId")
     	public String newFacetId;
-    	
+
     	@JsonProperty("entities")
     	public List<Long> entities;
 	}
-     
+
     @Override
 	protected void setup(PippoSettings conf) {
 
@@ -95,13 +95,13 @@ public class Collection extends BackendRouter {
 
             if (rc.getParameter("name").isNull() || rc.getParameter("name").isEmpty())
                 throw new RequestException("No name parameter");
-                
+
             if (rc.getParameter("project").isNull() || rc.getParameter("project").isEmpty())
                 throw new RequestException("No project parameter");
-                
+
             final String project = rc.getParameter("project").toString();
             final String name = rc.getParameter("name").toString();
-            
+
             final JcNode proj = new JcNode("p");
             final JcNode usr = new JcNode("u");
             final JcNumber id = new JcNumber("x");
@@ -118,17 +118,17 @@ public class Collection extends BackendRouter {
                 CREATE.node(coll).relation().type("EXTENDS").out().node(proj),
                 RETURN.value(coll.id()).AS(id)
             });
-            
+
             int collectionId = res.resultOf(id).get(0).intValue();
             try {
 				TaxonomyDB.update(TaxonomyDB.collection(collectionId), new TaxonomyDB.Taxonomy());
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
 			}
-            
+
             rc.json().send(
             	"{ \"id\": " + collectionId + " }");
-            
+
         });
 
         //id must be a string and the id must exist in the database.
@@ -149,7 +149,7 @@ public class Collection extends BackendRouter {
 
         	if (res.resultOf(new JcBoolean("ok")).size() == 0)
                 throw new RequestException("id does not exist in database");
-            
+
             rc.next();
         });
 
@@ -173,8 +173,8 @@ public class Collection extends BackendRouter {
 
             rc.json().send(new Graph(res.resultOf(node), res.resultOf(rel)));
         });
-        
-        // { version: number, taxonomy: [...] } 
+
+        // { version: number, taxonomy: [...] }
         GET("/{id}/taxonomy", (rc) -> {
         	final int id = rc.getParameter("id").toInt();
         	rc.json().send(TaxonomyDB.collection(id));
@@ -232,6 +232,26 @@ public class Collection extends BackendRouter {
             final List<GrNode> entries = res.resultOf(entry);
 
             rc.status(200).json().send(Graph.Node.fromList(entries));
+        });
+
+        // GET /v1/collection/55/project
+        // --> { name: "", link: "" }
+        GET("/{id}/project", (rc) -> {
+            final int id = rc.getParameter("id").toInt();
+
+            final JcNode proj = new JcNode("p");
+            final JcNode coll = new JcNode("c");
+
+            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node(coll).label("collection")
+                    .relation().type("EXTENDS")
+                    .node(proj).label("project"),
+                WHERE.valueOf(coll.id()).EQUALS(id),
+                RETURN.value(proj)
+            });
+
+            final GrNode graphNode = res.resultOf(proj).get(0);
+            rc.status(200).json().send(new Graph.Project(graphNode));
         });
 
         // Must be logged in to accept
@@ -321,14 +341,14 @@ public class Collection extends BackendRouter {
                     isAdmin = true;
                 }
             }
-            
+
             if (res.resultOf(new JcBoolean("ok")).size() == 0 && !isAdmin)
             throw new RequestException(403, "You are not a member of that collection");
-            
+
             rc.setLocal("admin", isAdmin);
             rc.next();
         });
-        
+
         // GET /{id}/entities --> [{id:1,text:"yalla"}]
         GET("/{id}/entities", (rc) -> {
         	final long id = rc.getParameter("id").toLong();
@@ -350,7 +370,7 @@ public class Collection extends BackendRouter {
 
             List<BigDecimal> entityIds = res.resultOf(eid);
             List<String> entityText = res.resultOf(txt);
-            
+
             class Entity {
             	public long id;
             	public String text;
@@ -366,7 +386,7 @@ public class Collection extends BackendRouter {
 
             rc.json().send(entities);
         });
-        
+
         // GET /{id}/classification --> [{facetId:"PLANNING,text:["yalla"]}]
         GET("/{id}/classification", (rc) -> {
         	final long id = rc.getParameter("id").toLong();
@@ -394,19 +414,19 @@ public class Collection extends BackendRouter {
 
             rc.json().send(facets);
         });
-        
-        
+
+
         // POST /55/reclassify {oldType:facetId,newType:facetId,entities:[33,13]}
         POST("/{id}/reclassify", (rc) -> {
         	final long id = rc.getParameter("id").toLong();
         	final ReclassifyRequest req = rc.createEntityFromBody(ReclassifyRequest.class);
-        	
+
         	for (long eid : req.entities) {
         		final JcNode c = new JcNode("c");
         		final JcRelation r = new JcRelation("r");
         		final JcNode n = new JcNode("n");
         		final JcNode e = new JcNode("e");
-        		
+
         		Database.query(rc.getLocal("db"), new IClause[]{
         			MATCH.node(c).label("collection")
         				.relation().type("CONTAINS")
@@ -418,7 +438,7 @@ public class Collection extends BackendRouter {
         			DO.DELETE(r)
         		});
         	}
-        	
+
         	rc.getResponse().ok();
         });
 
@@ -435,7 +455,7 @@ public class Collection extends BackendRouter {
         POST("/{id}/removeEntry", (rc) -> {
             if (rc.getParameter("entryId").isEmpty())
             	throw new RequestException("Must provide entryId");
-            
+
             new DeleteEntryEvent(rc.getParameter("entryId").toInt()).execute();
             rc.getResponse().ok();
         });
@@ -449,7 +469,7 @@ public class Collection extends BackendRouter {
             final int id = rc.getParameter("id").toInt();
             if (rc.getParameter("entryId").isEmpty())
             	throw new RequestException("Must provide entryId");
-            
+
             final int entryId = rc.getParameter("entryId").toInt();
 
             final JcNode entry = new JcNode("e");
@@ -457,10 +477,10 @@ public class Collection extends BackendRouter {
             final JcNode entity = new JcNode("x");
             final JcRelation facet = new JcRelation("f");
             final JcNumber entityId = new JcNumber("d");
-            final JcString projectName = new JcString("pid");            
+            final JcString projectName = new JcString("pid");
             final JcNode project = new JcNode("cp");
             final JcString facetType = new JcString("t");
-            
+
             final JcQueryResult rr = Database.query(rc.getLocal("db"), new IClause[]{
             	MATCH.node(entry).label("entry")
             		.relation(facet)
@@ -470,9 +490,9 @@ public class Collection extends BackendRouter {
             	RETURN.value(facet.type()).AS(facetType),
             	RETURN.value(entity.id()).AS(entityId)
             });
-            
+
             final Graph.Node graphNode = new Graph.Node(rr.resultOf(entry).get(0));
-            
+
             final JcQueryResult cqr = Database.query(rc.getLocal("db"), new IClause[]{
             	MATCH.node(coll).label("collection"),
                 WHERE.valueOf(coll.id()).EQUALS(id),
@@ -486,7 +506,7 @@ public class Collection extends BackendRouter {
                 RETURN.value(project.property("name")).AS(projectName)
             });
 
-            
+
             // Only copy classification relations if they exist in the
             // extended or default taxonomy.
             final String projectId = cqr.resultOf(projectName).get(0);
@@ -494,20 +514,20 @@ public class Collection extends BackendRouter {
             ArrayList<String> taxonomy = new ArrayList<String>();
             for (Facet f : baseTaxonomy.taxonomy)
             	taxonomy.add(f.id);
-            
+
             final TaxonomyDB.Taxonomy collectionTaxonomy = TaxonomyDB.taxonomyOf(TaxonomyDB.collection(id));
         	for (Facet f : collectionTaxonomy.taxonomy)
         		taxonomy.add(f.id);
-            
+
         	final long newEntryId = cqr.resultOf(entityId).get(0).longValue();
         	final List<String> facets = rr.resultOf(facetType);
         	final List<BigDecimal> entities = rr.resultOf(entityId);
             for (int i = 0; i < facets.size(); i++) {
             	final String type = facets.get(i);
-            	
+
             	if (!taxonomy.contains(type))
             		continue;
-            	
+
             	Database.query(rc.getLocal("db"), new IClause[]{
             		MATCH.node(entry).label("entry"),
             		MATCH.node(entity).label("facet"),
@@ -516,7 +536,7 @@ public class Collection extends BackendRouter {
             		CREATE.node(entry).relation().type(type).out().node(entity)
             	});
             }
-            
+
             rc.getResponse().ok();
         });
 
@@ -644,15 +664,15 @@ public class Collection extends BackendRouter {
 
             rc.getResponse().ok();
         });
-        
+
         // { version: number, taxonomy: [...] }
         PUT("/{id}/taxonomy", (rc) -> {
         	final int id = rc.getParameter("id").toInt();
-            final ObjectMapper mapper = new ObjectMapper(); 
+            final ObjectMapper mapper = new ObjectMapper();
             TaxonomyDB.Taxonomy req;
 
         	try {
-        		req = mapper.readValue(rc.getRequest().getBody(), 
+        		req = mapper.readValue(rc.getRequest().getBody(),
         								TaxonomyDB.Taxonomy.class);
 			} catch (JsonProcessingException e) {
 				throw new RequestException("Illegal JSON");
@@ -661,20 +681,20 @@ public class Collection extends BackendRouter {
             }
             final String ctx = TaxonomyDB.collection(id);
             long current = TaxonomyDB.taxonomyOf(ctx).version;
-            
+
             if (req.version < current)
-                throw new RequestException("Out of date version. Stored=" + 
+                throw new RequestException("Out of date version. Stored=" +
                 							current + ", Request=" + req.version);
-            
+
             if (req.version == current)
             	req.version += 1;
-            
+
 			try {
 				TaxonomyDB.update(ctx, req);
 			} catch (JsonProcessingException e) {
 				throw new RequestException("Sneaky illegal JSON");
 			}
-            
+
     	    rc.getResponse().ok();
         });
 

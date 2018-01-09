@@ -3,6 +3,8 @@ package se.lth.cs.connect;
 import iot.jcypher.query.JcQueryResult;
 import ro.pippo.core.RuntimeMode;
 import se.lth.cs.connect.modules.Database;
+import iot.jcypher.query.result.JcError;
+import java.util.List;
 
 /**
  * Routes that access the database may fail when accessing/querying it.
@@ -21,6 +23,15 @@ import se.lth.cs.connect.modules.Database;
  */
 public class DatabaseException extends RequestException {
     private String message;
+    private Error error;
+
+    public static class Error {
+        public List<JcError> db, general;
+        public Error(List<JcError> d, List<JcError> g) {
+            db = d;
+            general = g;
+        }
+    }
 
     /**
      * Construct based on a cypher result object. Contains both general and db
@@ -30,6 +41,7 @@ public class DatabaseException extends RequestException {
         super(500, "Unknown database error");
 
         message = Database.Error.fromResult(res).toString();
+        error = new Error(res.getDBErrors(), res.getGeneralErrors());
 
         if (!RuntimeMode.getCurrent().equals(RuntimeMode.DEV)) {
             if (message.contains("already exists"))
@@ -37,6 +49,10 @@ public class DatabaseException extends RequestException {
             else
                 message = super.getMessage();
         }
+    }
+
+    public Error errors() {
+        return error;
     }
 
     @Override

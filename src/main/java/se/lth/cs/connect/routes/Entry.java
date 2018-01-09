@@ -76,6 +76,7 @@ public class Entry extends BackendRouter {
         public String doi;
         public String date;
         public Map<String,List<String>> serpClassification;
+        public String project;
 
         public boolean isResearch() {
             return "research".equals(entryType);
@@ -87,7 +88,7 @@ public class Entry extends BackendRouter {
         public String validate() {
         	if (contact == null)
         		contact = "";
-        	
+
             if (isResearch()) {
                 if (reference == null)
                     return "No reference(s).";
@@ -167,7 +168,7 @@ public class Entry extends BackendRouter {
         	gg.hash = hash();
         	gg.description = description;
         	gg.type = entryType;
-        	
+
         	return gg.create(node);
         }
     }
@@ -190,6 +191,9 @@ public class Entry extends BackendRouter {
         // GET / --> {nodes:[], edges:[]}
         GET("", (rc) -> {
             final String projectName = rc.getParameter("project").toString();
+            if (projectName == null || projectName.isEmpty())
+                throw new RequestException("Must specify 'project' parameter");
+
             JcNode proj = new JcNode("proj");
             JcNode node = new JcNode("entry");
             JcRelation rel = new JcRelation("rel");
@@ -231,7 +235,7 @@ public class Entry extends BackendRouter {
             else
                 rc.json().send(new Graph.Node(entries.get(0)));
         });
-        
+
         GET("/{id}/collection", (rc) -> {
         	final JcNode node = new JcNode("entry");
         	final JcNode coll = new JcNode("coll");
@@ -247,12 +251,12 @@ public class Entry extends BackendRouter {
             });
 
             final List<BigDecimal> cids = res.resultOf(cid);
- 
+
             class ReturnVal {
             	public long id;
             	public ReturnVal(long id) { this.id = id; }
             }
-            
+
             // Catch both 0 and >1 cases; >1 requires human mistake
             if (cids.size() == 0)
                 throw new RequestException("No entry with that id exists");
@@ -295,7 +299,7 @@ public class Entry extends BackendRouter {
         PUT("/{id}", (rc) -> {
         	if (rc.getSession("email") == null)
         		throw new RequestException("Must be logged in.");
-        	
+
             final long id = rc.getParameter("id").toInt();
 
             AccountSystem.Account user = AccountSystem.findByEmail(rc.getSession("email"));
@@ -303,7 +307,7 @@ public class Entry extends BackendRouter {
                 throw new RequestException(403, "Please verify account before submitting entries.");
 
             NewEntry e = rc.createEntityFromBody(NewEntry.class);
-            
+
             // Validate
             String err = e.validate();
             if (err != null)

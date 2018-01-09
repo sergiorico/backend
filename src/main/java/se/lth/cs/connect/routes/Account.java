@@ -238,6 +238,20 @@ public class Account extends BackendRouter {
             rc.status(200).json().send(Graph.Collection.fromList(groups));
         });
 
+        GET("/projects", (rc) -> {
+            final String email = rc.getParameter("email").toString();
+
+            JcNode p = new JcNode("p");
+            List<GrNode> res = Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node().label("user").property("email").value(email)
+                    .relation().in().type("CREATED_BY")
+                    .node(p).label("project"),
+                RETURN.value(p)
+            }).resultOf(p);
+
+            rc.json().send(res.toArray());
+        });
+
         // GET api.serp.se/v1/account/self HTTP/1.1
         GET("/self", (rc) -> {
             AccountSystem.Account user = AccountSystem.findByEmail(rc.getSession("email"));
