@@ -99,7 +99,7 @@
                             <goal>java</goal>
                         </goals>
                     </execution>
-                </executions>     
+                </executions>
                         <configuration>
 		                    <mainClass>${main.class}</mainClass>
 		                </configuration>
@@ -133,10 +133,10 @@
 	                        <waitForInterrupt>false</waitForInterrupt>
 	                        <healthcheckUrl>http://localhost:7474/</healthcheckUrl>
 	                        <workingDir>../dep/neo4j/</workingDir>
-	                        <arguments>                        
+	                        <arguments>
 	                            <argument>java</argument>
 	                            <argument>-cp</argument>
-	                            <argument>.:${project.basedir}/dep/neo4j/lib/*:${project.basedir}/dep/neo4j/system/lib/*</argument>
+	                            <argument>.${path.separator}${project.basedir}${file.separator}dep${file.separator}neo4j${file.separator}lib${file.separator}*${path.separator}${project.basedir}${file.separator}dep${file.separator}neo4j${file.separator}system${file.separator}lib${file.separator}*</argument>
 	                            <argument>org.neo4j.server.CommunityBootstrapper</argument>
 	                        </arguments>
 	                    </configuration>
