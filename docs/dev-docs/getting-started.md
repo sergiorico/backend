@@ -65,7 +65,14 @@ Install the **community edition** and **version 2.3.X**, where X is the highest 
  - now your current and all new shells will be able to run the neo4j script
  - run `neo4j start` and `neo4j stop` to start & stop, respectively
 
-After installation you should start a neo4j server and navigate to `http://localhost:7474` and login using neo4j/neo4j. Choose a new password, **and remember it**. You will need it later on. 
+After installation you should start a neo4j server and navigate to `http://localhost:7474` and login using neo4j/neo4j. Choose a new password, **and remember it**. You will need it later on.
+
+Now you must add the constraints which our backend assumes are enforced. You can
+copy these cypher queries into the web ui:
+
+```
+CREATE CONSTRAINT ON (p:project) ASSERT p.name IS UNIQUE
+```
 
 #### maven
 Maven is a java package manager, amongst other things. We use version 3.
@@ -114,16 +121,16 @@ The design is very simple:
  - Database access is only done through the `Database.java` class, it is also responsible for parsing any database errors and throwing a `DatabaseException` if needed.
 
 ### Tips
- - We use a graph-database called Neo4j. The quickest way to get up to speed of what it is and how it works is to visit their website. 
+ - We use a graph-database called Neo4j. The quickest way to get up to speed of what it is and how it works is to visit their website.
  - Neo4j runs a graphical interface located at
 `http://localhost:7474/browser/`. This very helpful to try and prototype commands
 and later to see if correct connections and data was added to the database.
  - jcypher is used for querying the database from the backend much like SQL but with different syntax. The documentation is somewhat limited but there are examples on their github wiki. You should probably look at how things are done in the connect.routes package before trying your luck at the wiki, though. Note that jcypher can't
-always translate a Neo4j query directly. 
+always translate a Neo4j query directly.
  - The `application.properties` file has to be updated with the correct username and password for neo4j database.
 
 ### Eclipse
-To use Eclipse, simply import the backend files as a github repository. We recommend using a maven plugin to facilitate running the server. 
+To use Eclipse, simply import the backend files as a github repository. We recommend using a maven plugin to facilitate running the server.
 
 ## Frontend
 
@@ -149,7 +156,7 @@ If you already have node v7 or v8 then you should install a version manager to s
  - [n](https://github.com/tj/n)
  - [nvs](https://github.com/jasongin/nvs)
 
-The actual steps for installing Node.js vary depending on your operating system. 
+The actual steps for installing Node.js vary depending on your operating system.
 
 **windows**: Download the installer and run it. It will install `node` and `npm` and put them in your `%PATH%`.
 
@@ -159,7 +166,7 @@ The actual steps for installing Node.js vary depending on your operating system.
 
 Most popular linux distros have up-to-date packages of `node` and this is the easiest way to install nodejs. There is a guide [here](https://nodejs.org/en/download/package-manager/) on doing this.
 
-If this fails you must download a tarball and put `node` and `npm` into `/usr/bin` or similar. Some linuxes have a program called `alternative` to symlink files into `/usr/bin`. 
+If this fails you must download a tarball and put `node` and `npm` into `/usr/bin` or similar. Some linuxes have a program called `alternative` to symlink files into `/usr/bin`.
 
 #### installing packages
 
@@ -167,9 +174,9 @@ Type `npm install` in the repository to install all dependencies. Then try to ru
 
 ### Overview
 
-Here is an overview of the different components that make up the frontend. 
-![img](../images/frontend.svg) 
- 
+Here is an overview of the different components that make up the frontend.
+![img](../images/frontend.svg)
+
 The structure is quite straightforward:
  - We use jade, less and js to make up the webpages. The less and js files both have a base file which they are dependent on, then each page sub-levels down to have it’s unique properties which the rest of each pages sub-levels depend on.
  - Jquery v3 is used and is imported via the base class so this is standard across all pages.
@@ -178,9 +185,9 @@ The structure is quite straightforward:
 
 ### Tips for Frontend
  - It can be important to run `make clean` every now and then to be sure nothing is cached and the changes implemented are what you have made. **`make clean` is run automatically when running any make command.**
- - There are a few utilities which are used across some of the pages. They can be found in `src/js/util`. 
+ - There are a few utilities which are used across some of the pages. They can be found in `src/js/util`.
   - One example is el.js which is used to efficiently create elements. It is encouraged to use these utilities where possible to keep the coding consistent.
- - There is no need to (re)build after _modifying_ any files. Simply save the file and reload localhost website to see the changes. 
+ - There is no need to (re)build after _modifying_ any files. Simply save the file and reload localhost website to see the changes.
  - If you add new views, then add them to `app.js`.
  - If you add new LESS files, add them to `src/less/all.less`.
 
