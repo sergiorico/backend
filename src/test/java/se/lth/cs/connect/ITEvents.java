@@ -26,15 +26,16 @@ public class ITEvents extends APITest {
         super.setUp();
         basePath = "/v1/collection/" + collectionId;
     }
-    
+
     @Test
     public void entryWithoutCollectionShouldDie() {
-        String entryJson =  "{ \"entryType\": \"challenge\", " + 
+        String entryJson =  "{ \"entryType\": \"challenge\", " +
             "\"description\": \"test\", " +
             "\"serpClassification\": { }, " +
-            "\"collection\": " + collectionId + 
+            "\"project\": \"" + project + "\", " +
+            "\"collection\": " + collectionId +
         " }";
-		long entryId = ITCollectionAPI.submitEntry(userSession, collectionId, entryJson);
+		long entryId = submitEntry(userSession, collectionId, entryJson);
 
         new DetachEntryEvent(collectionId, entryId).execute();;
 
@@ -43,7 +44,7 @@ public class ITEvents extends APITest {
 
     @Test
     public void testCollectionNuke() {
-		long entryID = ITCollectionAPI.submitEntry(userSession, collectionId);
+		long entryID = submitEntry(userSession, collectionId);
 
         String user2 = APITest.getRandomString();
         SessionFilter sf2 = new SessionFilter();
@@ -52,7 +53,8 @@ public class ITEvents extends APITest {
         app.useMailClient(new Mailbox());
         given().
             filter(userSession).
-            param("email", new String[]{user2}).
+            param("email", user2).
+            spec(paramReqSpec).
         when().
             post(basePath + "/invite").
         then().
@@ -60,6 +62,7 @@ public class ITEvents extends APITest {
 
         given().
             filter(sf2).
+            spec(paramReqSpec).
         expect().
             statusCode(200).
         when().

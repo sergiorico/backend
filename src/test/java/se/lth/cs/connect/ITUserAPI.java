@@ -25,14 +25,14 @@ public class ITUserAPI extends APITest {
 		// These routes require an active session => requests should be denied
 		// Status code 401 => all is ok (expected)
 		// Any other code means that we have an error somewhere.
-		when().get("/v1/account/login").then().statusCode(401);
-		when().get("/v1/account/collections").then().statusCode(401);
-		when().get("/v1/account/self").then().statusCode(401);
-		when().post("/v1/account/logout").then().statusCode(401);
-		when().post("/v1/account/delete").then().statusCode(401);
-		when().post("/v1/account/change-password").then().statusCode(401);
-		when().get("/v1/account/invites").then().statusCode(401);
-		when().get("/v1/account/dat12asm@student.lu.se").then().statusCode(401);
+		given().spec(paramReqSpec).when().get("/v1/account/login").then().statusCode(401);
+		given().spec(paramReqSpec).when().get("/v1/account/collections").then().statusCode(401);
+		given().spec(paramReqSpec).when().get("/v1/account/self").then().statusCode(401);
+		given().spec(paramReqSpec).when().post("/v1/account/logout").then().statusCode(401);
+		given().spec(paramReqSpec).when().post("/v1/account/delete").then().statusCode(401);
+		given().spec(paramReqSpec).when().post("/v1/account/change-password").then().statusCode(401);
+		given().spec(paramReqSpec).when().get("/v1/account/invites").then().statusCode(401);
+		given().spec(paramReqSpec).when().get("/v1/account/dat12asm@student.lu.se").then().statusCode(401);
 	}
 
 	/**
@@ -42,6 +42,7 @@ public class ITUserAPI extends APITest {
 	public void testLogin() {
 		given().
 			filter(userSession).
+			spec(paramReqSpec).
 		when().
 			get("/v1/account/login").
 		then().
@@ -57,13 +58,13 @@ public class ITUserAPI extends APITest {
 		// Use mailbox to capture emails instead of sending them
 		Mailbox mailbox = new Mailbox();
 		app.useMailClient(mailbox);
-		
+
 		registerUser("test-reg@a.b", "1234");
-	
+
 		assertThat("Must send registration email", mailbox.getInbox().size(), is(1));
 		assertThat("Recipient must match registered email",
 				mailbox.top().recipient, is(equalTo("test-reg@a.b")));
-		
+
 		String verify = verifyUser(mailbox);
 		assertThat("Must find link in email", verify, not(equalTo("")));
 
@@ -72,6 +73,7 @@ public class ITUserAPI extends APITest {
 		given().
 			param("email", "test-reg@a.b").
 			param("passw", "1").
+			spec(paramReqSpec).
 		when().
 			post("/v1/account/register");
 	}
@@ -80,6 +82,7 @@ public class ITUserAPI extends APITest {
 	public void testLifecycle() {
 		given().
 			filter(userSession).
+			spec(paramReqSpec).
 		expect().
 			statusCode(200).
 		when().
@@ -89,6 +92,7 @@ public class ITUserAPI extends APITest {
 			filter(userSession).
 			param("email", email).
 			param("passw", passw).
+			spec(paramReqSpec).
 		expect().
 			statusCode(200).
 		when().
@@ -96,34 +100,37 @@ public class ITUserAPI extends APITest {
 
 		given().
 			filter(userSession).
+			spec(paramReqSpec).
 		when().
 			post("/v1/account/delete").
 		then().
 			statusCode(200);
 	}
-	
+
 	// This testcase might break if format of the reset password email is changed
 	@Test
 	public void testResetPassword() throws UnsupportedEncodingException{
 		Mailbox mailbox = new Mailbox();
 		app.useMailClient(mailbox);
-				
+
 		//logout
 		given().
 			filter(userSession).
+			spec(paramReqSpec).
 		when().
 			post("/v1/account/logout").
 		then().
 			statusCode(200);
-		
+
 		//ask for reset email
 		given().
 			param("email", email).
+			spec(paramReqSpec).
 		expect().
 			statusCode(200).
 		when().
 			post("/v1/account/reset-password");
-		
+
 		//filter mail for the token
 		Mailbox.Mail test = mailbox.top();
 		String[] split = test.content.split("token=");
@@ -135,6 +142,7 @@ public class ITUserAPI extends APITest {
 		String sessionId = given().
 				redirects().follow(false).
 				param("token", verify).
+				spec(paramReqSpec).
 			expect().
 				statusCode(302).
 			when().
@@ -146,11 +154,12 @@ public class ITUserAPI extends APITest {
 		given().
 			cookie("JSESSIONID", sessionId).
 			param("passw", "hej123").
+			spec(paramReqSpec).
 		expect().
 			statusCode(200).
 		when().
 			post("/v1/account/reset-password-confirm");
-	
+
 		//session gets wrecked by redirect no need to logout
 
 		//login with new password
@@ -158,11 +167,12 @@ public class ITUserAPI extends APITest {
 			filter(userSession).
 			param("email", email).
 			param("passw", "hej123").
+			spec(paramReqSpec).
 		when().
 			post("/v1/account/login").
 		then().
 			statusCode(200);
 	}
-	
-	
+
+
 }
