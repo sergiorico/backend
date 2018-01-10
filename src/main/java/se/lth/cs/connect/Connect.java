@@ -100,13 +100,11 @@ public class Connect extends Application {
 	 * ENTRY POINT
 	 */
 	public static void main(String[] args) {
-		// System.setProperty("pippo.mode", "dev");
-		// System.setProperty("pippo.mode", "prod");
-		// System.setProperty("pippo.mode", "test");
-
 		Connect conn = new Connect();
 		Pippo pippo = new Pippo(conn);
 		pippo.start();
+
+		Bootstrap.runFirstTimeCheck();
 
 		CleanupUsers cl = new CleanupUsers(conn);
 		cl.everyTwelveHours();

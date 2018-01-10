@@ -67,13 +67,6 @@ Install the **community edition** and **version 2.3.X**, where X is the highest 
 
 After installation you should start a neo4j server and navigate to `http://localhost:7474` and login using neo4j/neo4j. Choose a new password, **and remember it**. You will need it later on.
 
-Now you must add the constraints which our backend assumes are enforced. You can
-copy these cypher queries into the web ui:
-
-```
-CREATE CONSTRAINT ON (p:project) ASSERT p.name IS UNIQUE
-```
-
 #### maven
 Maven is a java package manager, amongst other things. We use version 3.
 
@@ -99,6 +92,7 @@ After all required software has been installed you are ready to proceed.
  - Then run `mvn compile`
  - If this errors, contact Axel
  - Otherwie, run `mvn exec:java`
+ - The backend will now create a superuser (login=`superuser`, passw=`i-eat-pancakes`) and initialize the database. **(Make sure neo4j is running!)**
 
 Et voilà, you are ready!
 
