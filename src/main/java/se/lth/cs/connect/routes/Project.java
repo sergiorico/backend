@@ -13,6 +13,7 @@ import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.regex.Pattern;
 import iot.jcypher.query.values.JcString;
 import ro.pippo.core.PippoSettings;
@@ -50,27 +51,31 @@ public class Project extends BackendRouter {
             if (!TrustLevel.authorize(user.trust, TrustLevel.VERIFIED))
                 throw new RequestException(403, "Account must be at least verified.");
 
-            final String name = rc.getParameter("name").toString();
-            if (name == null || name.isEmpty())
+            if (rc.getParameter("name").isNull() || rc.getParameter("name").isEmpty())
                 throw new RequestException("Must specify 'name' parameter.");
 
+            final String name = rc.getParameter("name").toString();
             if (!NAME_VALIDATOR.matcher(name).matches())
                 throw new RequestException("'name' parameter must only use alphanumeric characters.");
 
-            final String link = rc.getParameter("link").toString();
-            if (link == null || link.isEmpty())
+            if (rc.getParameter("link").isNull() || rc.getParameter("link").isEmpty())
                 throw new RequestException("Must specify 'link' parameter.");
+            final String link = rc.getParameter("link").toString();
 
-            JcNode userNode = new JcNode("user");
+            final JcNode userNode = new JcNode("user");
+            final JcNode projNode = new JcNode("proj");
+            GrNode graphNode = null;
             try {
                 JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[] {
                     MATCH.node(userNode).label("user")
                         .property("email").value(user.email),
-                    CREATE.node().label("project")
+                    CREATE.node(proj).label("project")
                         .property("name").value(name)
                         .property("link").value(link)
-                        .relation().out().type("CREATED_BY").node(userNode)
+                        .relation().out().type("CREATED_BY").node(userNode),
+                    RETURN.value(projNode)
                 });
+                graphNode = res.resultOf(projNode).get(0);
             } catch (DatabaseException de) {
                 List<JcError> db = de.errors().db;
                 final String alreadyInUse = "Neo.ClientError.Schema.ConstraintViolation";
@@ -79,7 +84,6 @@ public class Project extends BackendRouter {
                         throw new RequestException(400, "Project name is already in use.");
                 }
                 throw de;
-
             }
 
             try {
@@ -87,16 +91,10 @@ public class Project extends BackendRouter {
                 TaxonomyDB.update(TaxonomyDB.project(name), defaultTaxonomy);
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
+                throw new RequestException(500, "Error creating new taxonomy file.");
             }
 
-            class ReturnVal {
-                public String name, link;
-                public ReturnVal(String n, String l) {
-                    name = n;
-                    link = l;
-                }
-            }
-            rc.json().send(new ReturnVal(name, link));
+            rc.json().send(new Graph.Project(graphNode));
         });
 
         // GET /project
@@ -115,8 +113,25 @@ public class Project extends BackendRouter {
             }
 
             final Graph.Project[] projects = Graph.Project.fromList(res.resultOf(project));
-            final ReturnVal ret = new ReturnVal(projects);
-            rc.json().send(ret);
+            rc.json().send(new ReturnVal(projects));
+        });
+
+        // GET /project/xyz
+        // --> { name: "xyz", link: "http//serp.xyz" }
+        GET("/{name}", (rc) -> {
+            final JcNode project = new JcNode("p");
+
+            JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[] {
+                MATCH.node(project).label("project")
+                    .property("name").value(name),
+                RETURN.value(project)
+            });
+
+            List<GrNode> matches = res.resultOf(project);
+            if (matches.size() == 0)
+                throw new RequestException(404, "Project not found.");
+
+            rc.json().send(new Graph.Project(matches.get(0)));
         });
 
         // GET /project/xyz/taxonomy
@@ -130,6 +145,37 @@ public class Project extends BackendRouter {
                     throw new RequestException(404, "No such project.");
                 else
                     throw new RequestException(500, "Error reading project taxonomy.");
+            }
+        });
+
+        // PUT /project/xyz [name=xyz1] [link=serp.xyz]
+        PUT("/{id}", (rc) -> {
+            authorize(rc);
+
+            /* id to avoid name conflict with request data */
+            final String id = rc.getParameter("id").toString();
+            final JcNode proj = new JcNode("p");
+            final ArrayList<IClause> queryBuilder = new ArrayList<IClause>(2);
+            queryBuilder.add(MATCH.node(proj).label("project")
+                .property("name").value(id));
+
+            if (!rc.getParameter("name").isNull()) {
+                final String name = rc.getParameter("name").toString();
+                queryBuilder.add(DO.SET(proj.property("name")).to(name));
+            }
+
+            if (!rc.getParameter("link").isNull()) {
+                final String link = rc.getParameter("link").toString();
+                queryBuilder.add(DO.SET(proj.property("link")).to(link));
+            }
+
+            if (queryBuilder.size() > 1) {
+                IClause[] query = new IClause[queryBuilder.size()];
+                queryBuilder.toArray(query);
+                Database.query(rc.getLocal("db"), query);
+                rc.getResponse().ok();
+            } else {
+                throw new RequestException(400, "Must include at least one parameter.");
             }
         });
 
