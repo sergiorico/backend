@@ -4,33 +4,27 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Random;
 
-import org.junit.After;
-
+import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.builder.RequestSpecBuilder ;
+import com.jayway.restassured.filter.session.SessionFilter;
+import com.jayway.restassured.specification.RequestSpecification;
 
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 
-import com.jayway.restassured.filter.session.SessionFilter;
-import com.jayway.restassured.builder.RequestSpecBuilder ;
-import com.jayway.restassured.specification.RequestSpecification;
-import com.jayway.restassured.RestAssured;
-
 import iot.jcypher.database.IDBAccess;
+import iot.jcypher.query.api.IClause;
+import iot.jcypher.query.factories.clause.CREATE;
+import iot.jcypher.query.factories.clause.MATCH;
+import iot.jcypher.query.factories.clause.NATIVE;
+import iot.jcypher.query.values.JcNode;
 import ro.pippo.core.PippoConstants;
 import ro.pippo.test.PippoRule;
 import ro.pippo.test.PippoTest;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.MailClient;
 import utils.URLParser;
-
-import se.lth.cs.connect.modules.Database;
-import se.lth.cs.connect.modules.AccountSystem;
-import iot.jcypher.query.factories.clause.CREATE;
-import iot.jcypher.query.factories.clause.MATCH;
-import iot.jcypher.query.factories.clause.NATIVE;
-import iot.jcypher.query.values.JcNode;
-import iot.jcypher.query.api.IClause;
 
 public class APITest extends PippoTest {
     // Adds required parameters; use only for non-json requests!
@@ -50,7 +44,7 @@ public class APITest extends PippoTest {
 	public Connect app = new Connect();
 
 	@Rule
-	public PippoRule pippoRule = new PippoRule(app);
+	public PippoRule pippoRule = new PippoRule(app, 8080);
 
     public long submitEntry(SessionFilter user, long collectionId, String entry) {
         String id = given().
@@ -97,18 +91,14 @@ public class APITest extends PippoTest {
     }
 
 	public String verifyUser(Mailbox mailbox) throws UnsupportedEncodingException{
-		String verify = URLParser.find(mailbox.top().content);
+        String verify = URLParser.find(mailbox.top().content);
 		verify = verify.substring(verify.indexOf("token=") + 6);
 		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
-
+        
         given().
-			param("token", verify).
-            spec(paramReqSpec).
-		expect().
-			statusCode(200).
-		when().
-			get("/v1/account/verify");
-
+            param("token", verify).
+        when().
+            redirects().follow(false).get("/v1/account/verify");
 		return verify;
 	}
 
@@ -177,6 +167,7 @@ public class APITest extends PippoTest {
         project = getRandomString();
 
         paramReqSpec = new RequestSpecBuilder()
+
             .addParam("project", project).build();
 
         email = getRandomString() + "@" + getRandomString() + ".com";

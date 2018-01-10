@@ -28,20 +28,20 @@ public class ITCollectionAPI extends APITest {
 	public void testAccessDenied() {
         // Must be logged in (+member) the access these endpoints
 		given().spec(paramReqSpec).get(basePath + "/invite").then().statusCode(401);
-		given().spec(paramReqSpec).get(basePath + "/leave").then().statusCode(401);
-		given().spec(paramReqSpec).get(basePath + "/removeEntry").then().statusCode(401);
-		given().spec(paramReqSpec).post(basePath + "/addEntry").then().statusCode(401);
-		given().spec(paramReqSpec).post(basePath + "/members").then().statusCode(401);
+		get(basePath + "/leave").then().statusCode(401);
+		get(basePath + "/removeEntry").then().statusCode(401);
+		post(basePath + "/addEntry").then().statusCode(401);
+		post(basePath + "/members").then().statusCode(401);
 
         // Must be a member of the collection to access these endpoints
         SessionFilter sf = registerUser("a.b@c.d", "1");
-		given().spec(paramReqSpec).filter(sf).get(basePath + "/leave").then().statusCode(403);
-		given().spec(paramReqSpec).filter(sf).post(basePath + "/members").then().statusCode(403);
+		given().filter(sf).get(basePath + "/leave").then().statusCode(403);
+		given().filter(sf).post(basePath + "/members").then().statusCode(403);
 
         // Must be an owner of the colleciton to access these endpoints
-        given().spec(paramReqSpec).filter(sf).get(basePath + "/invite").then().statusCode(403);
-		given().spec(paramReqSpec).filter(sf).get(basePath + "/removeEntry").then().statusCode(403);
-        given().spec(paramReqSpec).filter(sf).post(basePath + "/addEntry").then().statusCode(403);
+        given().filter(sf).get(basePath + "/invite").then().statusCode(403);
+		given().filter(sf).get(basePath + "/removeEntry").then().statusCode(403);
+        given().filter(sf).post(basePath + "/addEntry").then().statusCode(403);
 	}
 
 	/**
@@ -49,11 +49,9 @@ public class ITCollectionAPI extends APITest {
 	 */
 	@Test
 	public void testCollectionIdCheckExistanceFilter(){
-		given().spec(paramReqSpec).
 		expect().statusCode(400).
 		when().get("v1/collection/" + 19453324 + "/stats");
 
-		given().spec(paramReqSpec).
 		expect().statusCode(400).
 		when().get("v1/collection/hej/stats");
 	}
@@ -71,7 +69,6 @@ public class ITCollectionAPI extends APITest {
 
         app.useMailClient(new Mailbox());
         given().
-            spec(paramReqSpec).
             param("email", user2).
             filter(userSession).
         expect().
@@ -81,7 +78,6 @@ public class ITCollectionAPI extends APITest {
 
         given().
             filter(sf2).
-            spec(paramReqSpec).
         expect().
             statusCode(200).
         when().
@@ -90,7 +86,6 @@ public class ITCollectionAPI extends APITest {
         int friends = given().
                 filter(sf2).
                 param("email", user2).
-                spec(paramReqSpec).
             expect().
                 statusCode(200).
                 contentType("application/json").
@@ -102,14 +97,13 @@ public class ITCollectionAPI extends APITest {
 
         given().
             filter(userSession).
-            spec(paramReqSpec).
         expect().
             statusCode(200).
         when().
             post(basePath + "/leave");
 
-        given().spec(paramReqSpec).expect().statusCode(400).when().get(basePath + "/stats");
-        given().spec(paramReqSpec).expect().statusCode(400).when().get("/v1/entry/" + entryID);
+        expect().statusCode(400).when().get(basePath + "/stats");
+        expect().statusCode(400).when().get("/v1/entry/" + entryID);
     }
 
 	/**
@@ -125,19 +119,16 @@ public class ITCollectionAPI extends APITest {
         // Last user leaves collection
 		given().
 			filter(userSession).
-			spec(paramReqSpec).
 		expect().
 			statusCode(200).
 		when().
 			post(basePath + "/leave");
 
         // Verify that collection was deleted
-		given().spec(paramReqSpec).
 		expect().statusCode(400).
 		when().get(basePath + "/stats");
 
 		// Test that entry was also automatically deleted.
-		given().spec(paramReqSpec).
 		expect().statusCode(400).
 		when().get("v1/entry/" + entryID);
 	}

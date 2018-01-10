@@ -45,7 +45,6 @@ public class ITEvents extends APITest {
         given().
             filter(userSession).
             param("email", user2).
-            spec(paramReqSpec).
         when().
             post(basePath + "/invite").
         then().
@@ -53,7 +52,6 @@ public class ITEvents extends APITest {
 
         given().
             filter(sf2).
-            spec(paramReqSpec).
         expect().
             statusCode(200).
         when().

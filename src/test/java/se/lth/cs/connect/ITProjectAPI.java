@@ -24,7 +24,6 @@ public class ITProjectAPI extends APITest {
 			filter(adminSession).
 			param("email", adminEmail).
 			param("passw", adminPassw).
-			spec(paramReqSpec).
 		expect().
 			statusCode(200).
 		when().
@@ -36,24 +35,19 @@ public class ITProjectAPI extends APITest {
         SessionFilter sf = registerUser("shify-user@project.com", "1");
 
         // Must either be owner or admin to access these endpoints
-        given().spec(paramReqSpec).filter(sf).
+        given().filter(sf).
         	post("v1/project").
         then().statusCode(403);
 
-		given().spec(paramReqSpec).filter(sf).
-			delete("v1/project").
+		given().filter(sf).
+			post("v1/project/" + project + "/delete").
 		then().statusCode(403);
 	}
 
 	@Test
 	public void test404(){
-		given().spec(paramReqSpec).
-			get("v1/project/shiftyproject/taxonomy").
-		then().statusCode(404);
-
-		given().spec(paramReqSpec).
-			get("v1/project/hej/taxonomy").
-		then().statusCode(404);
+		expect().statusCode(404).when().get("v1/project/shiftyproject/taxonomy");
+		expect().statusCode(404).when().get("v1/project/hej/taxonomy");
 	}
 
 	@Test
