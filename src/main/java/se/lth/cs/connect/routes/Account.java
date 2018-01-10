@@ -130,8 +130,9 @@ public class Account extends BackendRouter {
                 .replace("{hostname}", hostname);
 
             app.getMailClient().
-            	sendEmail(email, "SERP connect registration", message);
-
+                sendEmail(email, "SERP connect registration", message);
+                
+                
             rc.resetSession();
             rc.setSession("email", email);
             rc.getResponse().ok();
