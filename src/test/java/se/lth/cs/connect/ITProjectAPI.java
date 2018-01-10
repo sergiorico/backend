@@ -1,17 +1,11 @@
 package se.lth.cs.connect;
 
-import org.junit.Test;
-
-import java.util.List;
-import se.lth.cs.connect.modules.Database;
-import se.lth.cs.connect.modules.AccountSystem;
-import iot.jcypher.query.factories.clause.NATIVE;
-import iot.jcypher.query.api.IClause;
+import com.jayway.restassured.filter.session.SessionFilter;
 
 import org.junit.Before;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
-import com.jayway.restassured.filter.session.SessionFilter;
+import se.lth.cs.connect.modules.AccountSystem;
 
 public class ITProjectAPI extends APITest {
 

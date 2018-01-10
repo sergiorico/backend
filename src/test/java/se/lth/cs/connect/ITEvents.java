@@ -1,21 +1,12 @@
 package se.lth.cs.connect;
 
-import org.junit.Test;
-
-import java.util.List;
-
-
-import org.junit.Before;
-import static org.junit.Assert.assertTrue;
-
-import com.fasterxml.jackson.core.JsonParseException;
 import com.jayway.restassured.filter.session.SessionFilter;
 
-import se.lth.cs.connect.events.*;
+import org.junit.Before;
+import org.junit.Test;
 
-
-
-import utils.URLParser;
+import se.lth.cs.connect.events.DetachEntryEvent;
+import se.lth.cs.connect.events.LeaveCollectionEvent;
 
 
 public class ITEvents extends APITest {

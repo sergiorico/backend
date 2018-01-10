@@ -7,16 +7,10 @@ import static org.junit.Assert.assertThat;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.Random;
 
-import org.junit.Before;
 import org.junit.Test;
 
-import com.jayway.restassured.filter.session.SessionFilter;
-
 import ro.pippo.core.PippoConstants;
-import se.lth.cs.connect.Mailbox;
-import se.lth.cs.connect.modules.MailClient;
 
 public class ITUserAPI extends APITest {
 

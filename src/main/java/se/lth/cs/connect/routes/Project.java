@@ -1,31 +1,35 @@
 package se.lth.cs.connect.routes;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import iot.jcypher.graph.GrNode;
 import iot.jcypher.query.JcQueryResult;
 import iot.jcypher.query.api.IClause;
 import iot.jcypher.query.factories.clause.CREATE;
+import iot.jcypher.query.factories.clause.DO;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
-import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.result.JcError;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
 import iot.jcypher.query.values.JcRelation;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.regex.Pattern;
-import iot.jcypher.query.values.JcString;
 import ro.pippo.core.PippoSettings;
+import ro.pippo.core.route.RouteContext;
 import se.lth.cs.connect.Connect;
+import se.lth.cs.connect.DatabaseException;
+import se.lth.cs.connect.Graph;
 import se.lth.cs.connect.RequestException;
 import se.lth.cs.connect.TrustLevel;
 import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.Database;
 import se.lth.cs.connect.modules.TaxonomyDB;
-import se.lth.cs.connect.Graph;
-import se.lth.cs.connect.DatabaseException;
-import iot.jcypher.query.result.JcError;
 
 public class Project extends BackendRouter {
 
@@ -69,7 +73,7 @@ public class Project extends BackendRouter {
                 JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[] {
                     MATCH.node(userNode).label("user")
                         .property("email").value(user.email),
-                    CREATE.node(proj).label("project")
+                    CREATE.node(projNode).label("project")
                         .property("name").value(name)
                         .property("link").value(link)
                         .relation().out().type("CREATED_BY").node(userNode),
@@ -120,7 +124,7 @@ public class Project extends BackendRouter {
         // --> { name: "xyz", link: "http//serp.xyz" }
         GET("/{name}", (rc) -> {
             final JcNode project = new JcNode("p");
-
+            final String name = rc.getParameter("name").toString();
             JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[] {
                 MATCH.node(project).label("project")
                     .property("name").value(name),
@@ -179,8 +183,8 @@ public class Project extends BackendRouter {
             }
         });
 
-        // DELETE /project/xyz
-        DELETE("/{name}", (rc) -> {
+        // POST /project/xyz/delete
+        POST("/{name}/delete", (rc) -> {
             authorize(rc);
 
             // delete ok
@@ -233,7 +237,7 @@ public class Project extends BackendRouter {
         final JcNode user = new JcNode("u");
         final JcRelation rel = new JcRelation("r");
         final JcNumber trust = new JcNumber("t");
-        JcQueryResult res = Datbase.query(rc.getLocal("db"), new IClause[]{
+        JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
             MATCH.node(user).label("user")
                 .property("email").value(email),
             OPTIONAL_MATCH.node(proj).label("project")
@@ -243,7 +247,7 @@ public class Project extends BackendRouter {
                 .node(user),
             RETURN.value(proj),
             RETURN.value(rel),
-            RETURN.value(user.property("trust")).AS(trust);
+            RETURN.value(user.property("trust")).AS(trust)
         });
 
         final boolean exists = res.resultOf(proj).size() > 0;
