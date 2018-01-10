@@ -186,7 +186,7 @@ public class Project extends BackendRouter {
         // POST /project/xyz/delete
         POST("/{name}/delete", (rc) -> {
             authorize(rc);
-
+            rc.getResponse().ok();
             // delete ok
         });
 
@@ -250,16 +250,14 @@ public class Project extends BackendRouter {
             RETURN.value(user.property("trust")).AS(trust)
         });
 
-        final boolean exists = res.resultOf(proj).size() > 0;
-        if (!exists) {
+        final boolean exists = res.resultOf(proj).get(0) != null;
+        if (!exists)
             throw new RequestException(404, "No such project exists.");
-        }
 
-        final boolean creator = res.resultOf(rel).size() > 0;
+        final boolean creator = res.resultOf(rel).get(0) != null;
         final int trustValue = res.resultOf(trust).get(0).intValue();
         final boolean admin = TrustLevel.authorize(trustValue, TrustLevel.ADMIN);
-
-        if (!creator && !admin)
+        if (!(creator || admin))
             throw new RequestException(403, "You are not authorized for this project.");
     }
 }
