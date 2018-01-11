@@ -16,6 +16,7 @@ import iot.jcypher.query.factories.clause.DO;
 import iot.jcypher.query.factories.clause.MATCH;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
+import iot.jcypher.query.factories.clause.SEPARATE;
 import iot.jcypher.query.result.JcError;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
@@ -33,7 +34,7 @@ import se.lth.cs.connect.modules.TaxonomyDB;
 
 public class Project extends BackendRouter {
 
-    static final Pattern NAME_VALIDATOR = Pattern.compile("[a-z0-9]+", Pattern.CASE_INSENSITIVE);
+    static final Pattern NAME_VALIDATOR = Pattern.compile("[a-z0-9\\-]+", Pattern.CASE_INSENSITIVE);
 
     public Project(Connect app) {
         super(app);
@@ -60,7 +61,7 @@ public class Project extends BackendRouter {
 
             final String name = rc.getParameter("name").toString();
             if (!NAME_VALIDATOR.matcher(name).matches())
-                throw new RequestException("'name' parameter must only use alphanumeric characters.");
+                throw new RequestException("'name' parameter must only use [a-zA-Z0-9-] characters.");
 
             if (rc.getParameter("link").isNull() || rc.getParameter("link").isEmpty())
                 throw new RequestException("Must specify 'link' parameter.");
@@ -154,7 +155,7 @@ public class Project extends BackendRouter {
 
         // PUT /project/xyz [name=xyz1] [link=serp.xyz]
         PUT("/{id}", (rc) -> {
-            authorize(rc);
+            authorize(rc, rc.getParameter("id").toString());
 
             /* id to avoid name conflict with request data */
             final String id = rc.getParameter("id").toString();
@@ -174,10 +175,20 @@ public class Project extends BackendRouter {
             }
 
             if (queryBuilder.size() > 1) {
-                IClause[] query = new IClause[queryBuilder.size()];
-                queryBuilder.toArray(query);
-                Database.query(rc.getLocal("db"), query);
-                rc.getResponse().ok();
+                try {
+                    IClause[] query = new IClause[queryBuilder.size()];
+                    queryBuilder.toArray(query);
+                    Database.query(rc.getLocal("db"), query);
+                    rc.getResponse().ok();
+                } catch (DatabaseException de) {
+                    List<JcError> db = de.errors().db;
+                    final String alreadyInUse = "Neo.ClientError.Schema.ConstraintViolation";
+                    for (JcError err : db) {
+                        if (alreadyInUse.equals(err.getCodeOrType()))
+                            throw new RequestException(400, "Project name is already in use.");
+                    }
+                    throw de;
+                }
             } else {
                 throw new RequestException(400, "Must include at least one parameter.");
             }
@@ -185,14 +196,14 @@ public class Project extends BackendRouter {
 
         // POST /project/xyz/delete
         POST("/{name}/delete", (rc) -> {
-            authorize(rc);
+            authorize(rc, rc.getParameter("name").toString());
             rc.getResponse().ok();
             // delete ok
         });
 
         // PUT /project/xyz/taxonomy
         PUT("/{name}/taxonomy", (rc) -> {
-            authorize(rc);
+            authorize(rc, rc.getParameter("name").toString());
 
             final String name = rc.getParameter("name").toString();
             final ObjectMapper mapper = new ObjectMapper();
@@ -227,8 +238,7 @@ public class Project extends BackendRouter {
     }
 
     // Static method instead of filter b/c url regex not guaranteed to work
-    static void authorize(RouteContext rc) {
-        final String name = rc.getParameter("name").toString();
+    static void authorize(RouteContext rc, String name) {
         final String email = rc.getSession("email");
         if (email == null)
             throw new RequestException(401, "Must be logged in.");
@@ -236,28 +246,31 @@ public class Project extends BackendRouter {
         final JcNode proj = new JcNode("p");
         final JcNode user = new JcNode("u");
         final JcRelation rel = new JcRelation("r");
-        final JcNumber trust = new JcNumber("t");
+        final JcNumber trust = new JcNumber("x");
         JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
             MATCH.node(user).label("user")
                 .property("email").value(email),
+            SEPARATE.nextClause(),
             OPTIONAL_MATCH.node(proj).label("project")
                 .property("name").value(name),
-            OPTIONAL_MATCH.node(proj)
+            SEPARATE.nextClause(),
+            OPTIONAL_MATCH.node(user)
                 .relation(rel).type("CREATED_BY")
-                .node(user),
+                .node(proj),
+            RETURN.value(user.property("trust")).AS(trust),
             RETURN.value(proj),
-            RETURN.value(rel),
-            RETURN.value(user.property("trust")).AS(trust)
+            RETURN.value(rel)
         });
 
-        final boolean exists = res.resultOf(proj).get(0) != null;
-        if (!exists)
+        final boolean not_found = res.resultOf(proj).get(0) == null;
+        if (not_found)
             throw new RequestException(404, "No such project exists.");
 
-        final boolean creator = res.resultOf(rel).get(0) != null;
         final int trustValue = res.resultOf(trust).get(0).intValue();
         final boolean admin = TrustLevel.authorize(trustValue, TrustLevel.ADMIN);
-        if (!(creator || admin))
+        final boolean creator = res.resultOf(rel).get(0) != null;
+        if (!(creator || admin)) {
             throw new RequestException(403, "You are not authorized for this project.");
+        }
     }
 }
