@@ -23,6 +23,7 @@ import ro.pippo.core.PippoConstants;
 import ro.pippo.test.PippoRule;
 import ro.pippo.test.PippoTest;
 import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.MailClient;
 import utils.URLParser;
 
@@ -33,6 +34,9 @@ public class APITest extends PippoTest {
 	public SessionFilter userSession = new SessionFilter();
 	public String email = "";
 	public String passw = "";
+
+    public String adminEmail = "";
+    public String adminPassw = "";
 
     // Each test has a different, randomised project name
     public String project = "";
@@ -78,7 +82,6 @@ public class APITest extends PippoTest {
             filter(sf).
             param("email", email).
             param("passw", passw).
-            spec(paramReqSpec).
         when().
             post("/v1/account/register").
         then().
@@ -94,7 +97,7 @@ public class APITest extends PippoTest {
         String verify = URLParser.find(mailbox.top().content);
 		verify = verify.substring(verify.indexOf("token=") + 6);
 		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
-        
+
         given().
             param("token", verify).
         when().
@@ -131,7 +134,7 @@ public class APITest extends PippoTest {
     public long setupCollection(SessionFilter sf, String name) {
         final String id = given().
             filter(sf).
-            spec(paramReqSpec).
+            param("project", project).
             param("name", name).
         expect().
             statusCode(200).
@@ -142,15 +145,23 @@ public class APITest extends PippoTest {
         return Long.parseLong(id);
     }
 
-    public void setupProject(String name, String link) {
-        JcNode user = new JcNode("u");
-        Database.query(Database.access(), new IClause[]{
-            MATCH.node(user).label("user").property("email").value(email),
-            CREATE.node().label("project")
-                .property("name").value(name)
-                .property("link").value(link)
-                .relation().out().type("CREATED_BY").node(user)
-        });
+    public void setupProject(String email, String passw, String name, String link) {
+        SessionFilter auth = new SessionFilter();
+        given().
+            filter(auth).
+            param("email", email).
+            param("passw", passw).
+        expect().
+            statusCode(200).
+        when().
+            post("/v1/account/login");
+
+        given().
+            filter(auth).
+            param("name", name).
+            param("link", link).
+        expect().statusCode(200).
+        when().post("/v1/project");
     }
 
     private void setupConstraints() {
@@ -164,17 +175,16 @@ public class APITest extends PippoTest {
         app.useMailClient(new Mailbox());
         setupConstraints();
 
-        project = getRandomString();
-
-        paramReqSpec = new RequestSpecBuilder()
-
-            .addParam("project", project).build();
-
         email = getRandomString() + "@" + getRandomString() + ".com";
         passw = getRandomString();
         setupUser(userSession, email, passw);
 
-        setupProject(project, "http://serpconnect.cs.lth.se");
+        adminEmail = getRandomString() + "@" + getRandomString() + ".com";
+        adminPassw = getRandomString();
+        AccountSystem.createAccount(adminEmail, adminPassw, TrustLevel.ADMIN);
+
+        project = getRandomString();
+        setupProject(adminEmail, adminPassw, project, "http://serpconnect.cs.lth.se");
 
         collection = getRandomString();
         collectionId = setupCollection(userSession, collection);

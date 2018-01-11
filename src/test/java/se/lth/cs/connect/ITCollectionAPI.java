@@ -27,7 +27,7 @@ public class ITCollectionAPI extends APITest {
     @Test
 	public void testAccessDenied() {
         // Must be logged in (+member) the access these endpoints
-		given().spec(paramReqSpec).get(basePath + "/invite").then().statusCode(401);
+		given().param("project", project).get(basePath + "/invite").then().statusCode(401);
 		get(basePath + "/leave").then().statusCode(401);
 		get(basePath + "/removeEntry").then().statusCode(401);
 		post(basePath + "/addEntry").then().statusCode(401);
