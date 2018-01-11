@@ -25,7 +25,6 @@ public class URLParser {
 		    int matchEnd = matcher.end();
 		    return content.substring(matchStart, matchEnd);
 		}
-		System.out.println("no good=" + content);
 		return "";
 	}
 }
