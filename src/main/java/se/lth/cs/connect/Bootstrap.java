@@ -32,7 +32,7 @@ public class Bootstrap {
     public static int databaseVersion() {
         final JcNode md = new JcNode("md");
         final JcNumber version = new JcNumber("v");
-        
+
         JcQueryResult res = Database.query(Database.access(), new IClause[] {
             MATCH.node(md).label("metadata"),
             RETURN.value(md.property("version")).AS(version)
@@ -72,28 +72,23 @@ public class Bootstrap {
         Metadata metadata = new Metadata();
         Superuser superuser = new Superuser();
 
-        //
-        StringBuilder delim = new StringBuilder();
         for (int i = 0; i < 80; i++)
-            delim.append("=");
-        String row = delim.toString();
-        //
-
-        System.out.println(row);
-        System.out.println("BOOTSTRAPPING BACKEND");
+            System.out.print("=");
 
         System.out.println();
-        System.out.println("CREATING DB CONSTRAINTS");
+        System.out.println("No database matadata found, bootstrapping database:");
+
+        System.out.println();
+        System.out.println(" > creating database constraints...");
         createConstraints();
 
-        System.out.println();
-        System.out.println("INITIALIZING METADATA");
+        System.out.println(" > creating metadata node...");
         createMetadata(metadata);
 
-        System.out.println();
-        System.out.println("CREATING SUPERUSER: username=" + superuser.username + " password=" + superuser.password);
+        System.out.println(" > creating superuser (username=" + superuser.username + " password=" + superuser.password + ")...");
         createSuperuser(superuser);
-        System.out.println(row);
+
+        System.out.println("Done!");
     }
-    
+
 }
