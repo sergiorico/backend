@@ -31,7 +31,6 @@ public class Graph {
 
     public static class User {
         public String email;
-        public int defaultCollection;
         public String trust;
         // public String signUpDate; // signupdate
         // no password for obvious reasons
@@ -45,9 +44,6 @@ public class Graph {
                     java.math.BigDecimal tbig = (java.math.BigDecimal)prop.getValue();
                     trust = TrustLevel.toString(tbig.intValue());
                     break;
-                case "default":
-                    java.math.BigDecimal big = (java.math.BigDecimal)prop.getValue();
-                    defaultCollection = big.intValue();
                 default: break;
                 }
             }

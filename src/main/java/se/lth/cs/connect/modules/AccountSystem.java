@@ -41,7 +41,6 @@ public class AccountSystem {
         public String email;
         public String password; // bcrypt/scrypt hashed
         public int trust; // See TrustLevel
-        public int defaultCollection;
 
         public Account(String email, String pwd, int trust) {
             this.email = email;
@@ -58,9 +57,6 @@ public class AccountSystem {
                     java.math.BigDecimal a = (java.math.BigDecimal)prop.getValue();
                     trust = a.intValue();
                     break;
-                case "default":
-                    java.math.BigDecimal b = (java.math.BigDecimal)prop.getValue();
-                    defaultCollection = b.intValue();
                 default: break;
                 }
             }
@@ -90,10 +86,10 @@ public class AccountSystem {
         // This is almost undefined behavior
         if (entries.size() > 1) {}
 
+        // "Invalid username or password"
         if (entries.size() == 0)
             return null;
 
-        // "Invalid username or password"
         return new Account(entries.get(0));
     }
 
@@ -124,8 +120,6 @@ public class AccountSystem {
     public static synchronized boolean createAccount(String email,
                                         String password, int trust) {
     	Account acc = findByEmail(email);
-
-    	JcNode coll = new JcNode("c");
     	JcNode user = new JcNode("user");
 
     	ZonedDateTime currentTime = ZonedDateTime.now(ZoneOffset.UTC);
@@ -153,19 +147,12 @@ public class AccountSystem {
         acc = new Account(email,
             SCryptUtil.scrypt(password, SCRYPT_N, SCRYPT_R, SCRYPT_P), trust);
 
-        // (u)-[:MEMBER_OF]->(c)-[:OWNER]->(u)
         Database.query(Database.access(), new IClause[]{
-            CREATE.node(coll).label("collection")
-                .property("name").value("default"),
-            CREATE.node(user).label("user")
+            CREATE.node().label("user")
                 .property("email").value(email)
                 .property("password").value(acc.password)
                 .property("trust").value(trust)
                 .property("signupdate").value(currentTime)
-                .property("default").value(coll.id())
-                .relation().out().type("MEMBER_OF")
-                .node(coll)
-                .relation().out().type("OWNER").node(user)
         });
         return true;
     }

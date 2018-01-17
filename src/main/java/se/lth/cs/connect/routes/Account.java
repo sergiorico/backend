@@ -359,14 +359,12 @@ public class Account extends BackendRouter {
 
     private static class UserDetails {
         public String email, trust;
-        public int collection;
         public Graph.Node[] entries;
         public Graph.Collection[] collections;
 
         public UserDetails(AccountSystem.Account user, List<GrNode> coll) {
             this.email = user.email;
             this.trust = TrustLevel.toString(user.trust);
-            this.collection = user.defaultCollection;
             this.collections = Graph.Collection.fromList(coll);
         }
 
