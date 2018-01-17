@@ -426,7 +426,7 @@ Get collections
 
    .. sourcecode:: js
 
-      [ { "name": "default", "id": 2 } ]
+      [ { "name": "rick's best systems", "id": 2 } ]
 
    :>jsonarr name: non-unique name of the collection
    :>jsonarr id: unique id of the collection
@@ -444,14 +444,12 @@ Query self
       {
          "email": "zoo@world.gov",
          "trust": "Admin",
-         "collection": 2,
          "collections": [COLLECTIONS]
          "entries": [ENTRIES]
       }
 
    :>json string email: user's email
    :>json string trust: trust level (see :ref:`trust`)
-   :>json integer collection: id of the user's default collection
    :>json array collections: An array of collection objects, equivalent to `Get collections`_
    :>json array entries: An array of approved/pending `Entry`_ objects this user has submitted.
 
