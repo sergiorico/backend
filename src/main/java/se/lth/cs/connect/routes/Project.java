@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
 
 import iot.jcypher.graph.GrNode;
 import iot.jcypher.query.JcQueryResult;
@@ -179,6 +180,21 @@ public class Project extends BackendRouter {
                     IClause[] query = new IClause[queryBuilder.size()];
                     queryBuilder.toArray(query);
                     Database.query(rc.getLocal("db"), query);
+
+                    // Must also update the name of the taxonomy database file
+                    if (!rc.getParameter("name").isNull()) {
+                        final String name = rc.getParameter("name").toString();
+                        final String oldCtx = TaxonomyDB.project(id);
+                        final String newCtx = TaxonomyDB.project(name);
+
+                        final File dbfile = new File(oldCtx);
+                        if (!dbfile.renameTo(new File(newCtx))) {
+                            String data = TaxonomyDB.read(oldCtx);
+                            TaxonomyDB.write(newCtx, data);
+                            dbfile.delete();
+                        }
+                    }
+
                     rc.getResponse().ok();
                 } catch (DatabaseException de) {
                     List<JcError> db = de.errors().db;

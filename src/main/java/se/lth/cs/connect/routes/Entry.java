@@ -372,6 +372,8 @@ public class Entry extends BackendRouter {
             if (!TrustLevel.authorize(user.trust, TrustLevel.USER))
                 throw new RequestException(403, "Please verify account before submitting entries.");
 
+            if (!)
+
             NewEntry e = rc.createEntityFromBody(NewEntry.class);
             if (e.contact == null || e.contact.length() == 0)
                 e.contact = user.email;
@@ -379,8 +381,6 @@ public class Entry extends BackendRouter {
             int collectionId = -1;
             try {
                 collectionId = Integer.parseInt(e.collection);
-                if (collectionId == -1)
-                    collectionId = user.defaultCollection;
             } catch (NumberFormatException nfe) {
                 throw new RequestException("Collection Id must to an integer");
             }

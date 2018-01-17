@@ -177,7 +177,7 @@ public class Collection extends BackendRouter {
         // { version: number, taxonomy: [...] }
         GET("/{id}/taxonomy", (rc) -> {
         	final int id = rc.getParameter("id").toInt();
-        	rc.json().send(TaxonomyDB.collection(id));
+        	rc.json().send(TaxonomyDB.read(TaxonomyDB.collection(id)));
         });
 
         // GET api.serpconnect.cs.lth.se/{id}/stats HTTP/1.1

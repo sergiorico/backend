@@ -131,8 +131,8 @@ public class Account extends BackendRouter {
 
             app.getMailClient().
                 sendEmail(email, "SERP connect registration", message);
-                
-                
+
+
             rc.resetSession();
             rc.setSession("email", email);
             rc.getResponse().ok();
@@ -262,7 +262,7 @@ public class Account extends BackendRouter {
         // GET /account/projects
         // --> [ { name:"", link: "" }, ..., { name:"", link:"" } ]
         GET("/projects", (rc) -> {
-            final String email = rc.getParameter("email").toString();
+            final String email = rc.getSession("email");
 
             JcNode p = new JcNode("p");
             List<GrNode> projects = Database.query(rc.getLocal("db"), new IClause[]{
