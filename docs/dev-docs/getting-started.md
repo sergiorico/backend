@@ -1,7 +1,7 @@
 Getting Started
 ===============
 
-This file is dedicated to getting you ready to start developing. If you have questions, head over to our [slack](https://serp-group.slack.com) channel and fire away!
+This file is dedicated to getting you ready to start developing. If you have questions, head over to our [slack](https://serp-group.slack.com) channel and fire away! 
 
 ## Backend
 
@@ -19,7 +19,7 @@ We start with the backend, simply because it is required for you to have any fun
 #### java 8
 Java 8 (SDK & JRE) is required. Almost all os have a standard way of installing and upgrading java. These guides may work for you, but ideally you should look it up.
 
-Test if you already have java 8 by running:
+Test if you already have java 8 by running (any os):
  - JRE: `java -version`
  - SDK: `javac -version`
 
@@ -27,19 +27,16 @@ Test if you already have java 8 by running:
  - JRE: `sudo apt-get install default-jre`
  - SDK: `sudo apt-get install default-jdk`
 
-**windows**
-Download the JRE and SDK from [oracle](http://www.oracle.com/technetwork/java/javase/downloads/index.html).
+**windows**: Download the JRE and SDK from [oracle](http://www.oracle.com/technetwork/java/javase/downloads/index.html).
 
-**os x/mac os**
- - install [homebrew](https://brew.sh/)
- - `brew install java`
+**os x/mac os**: install [homebrew](https://brew.sh/), then `brew install java`
 
 **other linux**
  - try the default package manager
  - otherwise [check this out](http://openjdk.java.net/install/)
 
 #### neo4j
-Install the **community edition** and **version 2.3.X**, where X is the highest you can find. The installation process depends on your os/environment. Here is the [official documentation](https://neo4j.com/docs/operations-manual/current/installation/). Below are summaries:
+Install the **community edition**, **version 2.3.X** where X is the highest you can find. Again, the installation process depends on your os/environment. Here is the [official documentation](https://neo4j.com/docs/operations-manual/current/installation/). Below are summaries:
 
 **ubuntu/debian**
  - install neo4j via apt-get ([instructions](http://debian.neo4j.org/))
@@ -65,13 +62,12 @@ Install the **community edition** and **version 2.3.X**, where X is the highest 
  - now your current and all new shells will be able to run the neo4j script
  - run `neo4j start` and `neo4j stop` to start & stop, respectively
 
-After installation you should start a neo4j server and navigate to `http://localhost:7474` and login using neo4j/neo4j. Choose a new password, **and remember it**. You will need it later on.
+After installation you should start a neo4j server and navigate to `http://localhost:7474` and login using neo4j/neo4j. Choose a new password, **and remember it**. You _will_ need it later on.
 
 #### maven
 Maven is a java package manager, amongst other things. We use version 3.
 
-**mac**
- - `brew install maven30`
+**mac**: install [homebrew](https://brew.sh/), then `brew install maven30`
 
 **general**
 
@@ -87,41 +83,14 @@ After all required software has been installed you are ready to proceed.
  - Organise `mkdir connect && cd ~/connect`
  - Clone `git clone git@github.com:emenlu/connect.git backend`
  - Charge in `cd backend`
- - Open `/src/main/resources/conf/application.properties` in your editor of choice
+ - Open `src/main/resources/conf/application.properties` in your editor of choice
  - Change `neo4j.password` to what you entered previously in the web ui
- - Then run `mvn compile`
- - If this errors, contact Axel
- - Otherwie, run `mvn exec:java`
- - The backend will now create a superuser (login=`superuser`, passw=`i-eat-pancakes`) and initialize the database. **(Make sure neo4j is running!)**
+ - Then run `mvn compile exec:java`
+ - The backend will now create a superuser and initialize the database. **(Make sure neo4j is running!)**
 
 Et voilà, you are ready!
 
-In the future, run `mvn compile exec:java -Dpippo.mode=dev` (maybe alias it). It does both commands after each other, and also runs the server in dev mode.
-
-### Design
-
-Here is an overview of the different components that make up the backend. Each box corresponds to a java package with a similar name.
-
-![img](../images/overview.svg)
-
-The design is very simple:
- - The application (`Connect.java`) is the entry point and registers routers from the `connect.routes` package.
- - Each router defines endpoints (e.g. `GET /login`) that it can serve and pippo (our main dependency) performs the actual route lookups.
- - All endpoints located inside classes in the `connect.routes` package may use the common classes (`Graph`, `*Exception`, `TrustLevel`) from the `connect` package.
- - Many endpoints also rely on the `connect.modules` package to do account stuff (`AccountSystem.java`), perform database queries (`Database.java`) or send mail (`Mailman.java`).
- - It is a goal (that we haven't reached) to expose the API endpoints as wrappers around a program, such that program logic isn't in the route handlers.
- - An example of a work-in-progress idea is the account router (`Account.java`), which heavily uses the account system (`AccountSystem.java`).
- - The two exceptions (`DatabaseException.java` and `RequestException.java`) are thrown by handlers and handled by a function in `Connect.java`, like a bubble-style event.
- - Database access is only done through the `Database.java` class, it is also responsible for parsing any database errors and throwing a `DatabaseException` if needed.
-
-### Tips
- - We use a graph-database called Neo4j. The quickest way to get up to speed of what it is and how it works is to visit their website.
- - Neo4j runs a graphical interface located at
-`http://localhost:7474/browser/`. This very helpful to try and prototype commands
-and later to see if correct connections and data was added to the database.
- - jcypher is used for querying the database from the backend much like SQL but with different syntax. The documentation is somewhat limited but there are examples on their github wiki. You should probably look at how things are done in the connect.routes package before trying your luck at the wiki, though. Note that jcypher can't
-always translate a Neo4j query directly.
- - The `application.properties` file has to be updated with the correct username and password for neo4j database.
+In the future, run `mvn compile exec:java -Dpippo.mode=dev`. It executaes both commands sequentially and launches the server in dev mode.
 
 ### Eclipse
 To use Eclipse, simply import the backend files as a github repository. We recommend using a maven plugin to facilitate running the server.
@@ -165,24 +134,5 @@ If this fails you must download a tarball and put `node` and `npm` into `/usr/bi
 #### installing packages
 
 Type `npm install` in the repository to install all dependencies. Then try to run the dev. server using `make dev`. If this fails, report to Axel. Otherwise you are good to go!
-
-### Overview
-
-Here is an overview of the different components that make up the frontend.
-![img](../images/frontend.svg)
-
-The structure is quite straightforward:
- - We use jade, less and js to make up the webpages. The less and js files both have a base file which they are dependent on, then each page sub-levels down to have it’s unique properties which the rest of each pages sub-levels depend on.
- - Jquery v3 is used and is imported via the base class so this is standard across all pages.
- - For styling, LESS is used. Structurally we have a working files folder which divides the pages up and then it is imported into an `all.less` file which is converted into one CSS file.
- - There are two api files: `api.js` and `api-dev.js`. The `api-dev.js` file only changes the server to which the ajax queries from `api.js` are made.
-
-### Tips for Frontend
- - It can be important to run `make clean` every now and then to be sure nothing is cached and the changes implemented are what you have made. **`make clean` is run automatically when running any make command.**
- - There are a few utilities which are used across some of the pages. They can be found in `src/js/util`.
-  - One example is el.js which is used to efficiently create elements. It is encouraged to use these utilities where possible to keep the coding consistent.
- - There is no need to (re)build after _modifying_ any files. Simply save the file and reload localhost website to see the changes.
- - If you add new views, then add them to `app.js`.
- - If you add new LESS files, add them to `src/less/all.less`.
 
 
