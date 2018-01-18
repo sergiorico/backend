@@ -29,11 +29,11 @@ public class Connect extends Application {
 		"https://localhost:8181", 
 		"http://localhost:8080",
 
+		// HTTP ok since content transferred via HTTPS from this server
 		"http://serpconnect.cs.lth.se",
-		"https://serpconnect.cs.lth.se",
-
-		"https://test.serpconnect.cs.lth.se",
+		"http://test.serpconnect.cs.lth.se",
 		
+		// What is this?
 		"http://api.serpconnect.cs.lth.se", 
 		"https://api.serpconnect.cs.lth.se"
 	};
