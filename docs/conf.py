@@ -12,7 +12,7 @@ extensions = ['sphinxcontrib.httpdomain']
 master_doc = 'index'
 
 project = 'SERP Connect'
-copyright = '2015-2017, the connect authors'
+copyright = '2015-2018, the connect authors'
 author = 'the connect authors'
 
 source_parsers = {
