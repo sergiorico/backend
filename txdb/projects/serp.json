@@ -1,0 +1,4 @@
+{
+    "taxonomy": [{"id":"EFFECT","name":"Effect","parent":"root"},{"id":"SCOPE","name":"Scope","parent":"root"},{"id":"CONTEXT","name":"Context","parent":"root"},{"id":"INTERVENTION","name":"Intervention","parent":"root"}],
+    "version": 1
+}

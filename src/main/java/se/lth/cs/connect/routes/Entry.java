@@ -21,6 +21,7 @@ import iot.jcypher.query.factories.clause.NATIVE;
 import iot.jcypher.query.factories.clause.OPTIONAL_MATCH;
 import iot.jcypher.query.factories.clause.RETURN;
 import iot.jcypher.query.factories.clause.WHERE;
+import iot.jcypher.query.factories.xpression.X;
 import iot.jcypher.query.values.JcBoolean;
 import iot.jcypher.query.values.JcNode;
 import iot.jcypher.query.values.JcNumber;
@@ -75,6 +76,7 @@ public class Entry extends BackendRouter {
         public String doi;
         public String date;
         public Map<String,List<String>> serpClassification;
+        public String project;
 
         public boolean isResearch() {
             return "research".equals(entryType);
@@ -86,7 +88,7 @@ public class Entry extends BackendRouter {
         public String validate() {
         	if (contact == null)
         		contact = "";
-        	
+
             if (isResearch()) {
                 if (reference == null)
                     return "No reference(s).";
@@ -166,7 +168,7 @@ public class Entry extends BackendRouter {
         	gg.hash = hash();
         	gg.description = description;
         	gg.type = entryType;
-        	
+
         	return gg.create(node);
         }
     }
@@ -188,23 +190,30 @@ public class Entry extends BackendRouter {
     protected void setup(PippoSettings conf) {
         // GET / --> {nodes:[], edges:[]}
         GET("", (rc) -> {
+            final String projectName = rc.getParameter("project").toString();
+            if (projectName == null || projectName.isEmpty())
+                throw new RequestException("Must specify 'project' parameter");
+
+            JcNode proj = new JcNode("proj");
             JcNode node = new JcNode("entry");
             JcRelation rel = new JcRelation("rel");
 
             JcQueryResult res = Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node(proj).label("project").property("name").value(projectName),
                 MATCH.node(node).label("entry"),
-                WHERE.NOT().has(node.property("pending")),
+                WHERE.existsPattern(
+                    X.node(proj)
+                        .relation().type("EXTENDS")
+                    .node().label("collection")
+                        .relation().type("CONTAINS")
+                    .node(node))
+                    .AND().NOT().has(node.property("pending")),
                 OPTIONAL_MATCH.node(node).relation(rel).out().node().label("facet"),
                 RETURN.value(node),
                 RETURN.value(rel)
             });
 
             rc.json().send(new Graph(res.resultOf(node), res.resultOf(rel)));
-        });
-
-        // GET /taxonomy --> {version:X, taxonomy:[{id,name,parent}]}
-        GET("/taxonomy", (rc) -> {
-            rc.json().send(TaxonomyDB.SERP());
         });
 
         // GET /{id} --> {entry}
@@ -226,7 +235,7 @@ public class Entry extends BackendRouter {
             else
                 rc.json().send(new Graph.Node(entries.get(0)));
         });
-        
+
         GET("/{id}/collection", (rc) -> {
         	final JcNode node = new JcNode("entry");
         	final JcNode coll = new JcNode("coll");
@@ -242,12 +251,12 @@ public class Entry extends BackendRouter {
             });
 
             final List<BigDecimal> cids = res.resultOf(cid);
- 
+
             class ReturnVal {
             	public long id;
             	public ReturnVal(long id) { this.id = id; }
             }
-            
+
             // Catch both 0 and >1 cases; >1 requires human mistake
             if (cids.size() == 0)
                 throw new RequestException("No entry with that id exists");
@@ -290,7 +299,7 @@ public class Entry extends BackendRouter {
         PUT("/{id}", (rc) -> {
         	if (rc.getSession("email") == null)
         		throw new RequestException("Must be logged in.");
-        	
+
             final long id = rc.getParameter("id").toInt();
 
             AccountSystem.Account user = AccountSystem.findByEmail(rc.getSession("email"));
@@ -298,7 +307,7 @@ public class Entry extends BackendRouter {
                 throw new RequestException(403, "Please verify account before submitting entries.");
 
             NewEntry e = rc.createEntityFromBody(NewEntry.class);
-            
+
             // Validate
             String err = e.validate();
             if (err != null)
@@ -370,10 +379,8 @@ public class Entry extends BackendRouter {
             int collectionId = -1;
             try {
                 collectionId = Integer.parseInt(e.collection);
-                if (collectionId == -1)
-                    collectionId = user.defaultCollection;
             } catch (NumberFormatException nfe) {
-                throw new RequestException("Collection Id must to an integer");
+                throw new RequestException("'collection' must be an integer");
             }
 
             boolean tagAsPending = !TrustLevel.authorize(user.trust, TrustLevel.VERIFIED);

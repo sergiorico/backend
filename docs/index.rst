@@ -21,6 +21,8 @@ inner and outer workings of the SERP Connect `backend`_ and `frontend`_.
    dev-docs/contributing
    dev-docs/development
    dev-docs/testing
+   dev-docs/graph
+
 
    api
 

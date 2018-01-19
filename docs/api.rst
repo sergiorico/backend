@@ -10,11 +10,120 @@ Status codes are generally:
  - 404: not found
  - 500: server or database error
 
-If an endpoint has parameters they are required for the request to success 
+If an endpoint has parameters they are required for the request to success
 (otherwise a 400 is thrown). A parameter not found in the URL should be
 sent in the request body as ``application/x-www-form-urlencoded``. Some
-endpoints require input as JSON. The endpoint description will include a 
+endpoints require input as JSON. The endpoint description will include a
 special JSON Request object if JSON is required.
+
+Project
+-------
+A project specifies the default taxonomy which collections can extend. Usually each project is hosted on a different website.
+
+.. sourcecode:: js
+
+   {
+      "name": "serp",
+      "link": "http://serpconnect.cs.lth.se"
+   }
+
+Where ``name`` is a unique (across backends) project name and ``link`` a url to the website of the project.
+
+Query projects
+~~~~~~~~~~~~~~
+.. http:get:: /v1/project
+
+   Get a list of all known projects.
+
+   **Example response**:
+
+   .. sourcecode:: js
+
+      {
+          "projects": [PROJECT]
+      }
+
+   :>json array projects: An array of `Project`_ objects.
+
+   :statuscode 200: ok, return taxonomy
+
+Create new project
+~~~~~~~~~~~~~~~~~~
+.. http:post:: /v1/project
+
+   Create a new project listing.
+
+   :param name: unique, alphanumeric name ([a-zA-Z0-9])
+   :type name: string
+   :param link: url to website of the project
+   :type link: string
+
+   :resheader Content-Type: application/json
+
+   **Example response**:
+
+   .. sourcecode:: js
+
+      {
+          "name": "serp-test",
+          "link": "http://test.serpconnect.cs.lth.se"
+      }
+
+   :>json string name: the name you provided
+   :>json string link: the link you provided
+
+   :statuscode 200: ok, echo back the project details
+   :statuscode 400: name/link missing or incorrect name/already taken
+   :statuscode 401: must be logged in
+   :statuscode 403: only verified users can create projects
+
+Query project taxonomy
+~~~~~~~~~~~~~~~~~~~~~~
+.. http:get:: /v1/project/(string:name)/taxonomy
+
+   Get a flattened version of the project taxonomy. The flattened graph assumes an implicit "ROOT" node object as the top parent.
+
+   :param name: unique, alphanumeric project name
+   :type name: String
+
+   .. sourcecode:: js
+
+      {
+          "version": 0,
+          "taxonomy": [FACETS]
+      }
+
+   :>json integer version: A version identifier.
+   :>json array taxonomy: An array of `Facet`_ objects. The flattened taxonomy.
+
+   :statuscode 200: ok, return taxonomy
+   :statuscode 404: project not found
+
+Update project taxonomy
+~~~~~~~~~~~~~~~~~~~~~~~
+.. http:put:: /v1/project/(string:name)/taxonomy
+
+   Update the extended taxonomy.  The request will only pass if
+   the version is >= (greater than or equal to) the currently
+   stored version.
+
+   :param name: project name
+   :type name: string
+
+   .. sourcecode:: js
+
+      {
+         "version": 0,
+         "taxonomy": [FACETS]
+      }
+
+   :<json integer version: Reference to the version this extension is based on.
+   :<json array taxonomy: The `Facet`_ nodes of the extended taxonomy.
+
+   :statuscode 400: illegal json, out of date version
+   :statuscode 401: must be logged in
+   :statuscode 403: must be a admin or creator of project project
+   :statuscode 404: no project with that name exists
 
 Graph
 -----
@@ -43,7 +152,7 @@ Graph Taxonomy
    Get a flattened version of the standard SERP taxonomy. The flattened graph assumes an implicit "ROOT" node object as the top parent.
 
    .. sourcecode:: js
-      
+
       {
           "version": 0,
           "taxonomy": [FACETS]
@@ -59,16 +168,16 @@ Facet
 A node in the taxonomy tree is called a facet.
 
 .. sourcecode:: js
-   
+
    {
       "id": "PLANNING",
       "name": "Test planning",
       "parent": "SCOPE"
    }
 
-Where ``id`` is a (per-taxonomy) unique identifier of this facet, 
-``name`` is a descriptive name and ``parent`` is the ``id`` of 
-the parent node (since a taxonomy is a tree). 
+Where ``id`` is a (per-taxonomy) unique identifier of this facet,
+``name`` is a descriptive name and ``parent`` is the ``id`` of
+the parent node (since a taxonomy is a tree).
 
 Edge
 ----
@@ -86,15 +195,15 @@ Where ``source`` is the origin entry node id, ``target`` is the targeted entity 
 
 Entry
 -----
-An entry is either a classified challenge or research result that a user 
-submitted to the database. Each entry consists of entry-specific information 
+An entry is either a classified challenge or research result that a user
+submitted to the database. Each entry consists of entry-specific information
 and a classification. These two pieces of data must be queried separately.
 See `Find entry by id`_ and `Get entry taxonomy`_.
 
 Find entry by id
-~~~~~~~~~~~~~~~~ 
+~~~~~~~~~~~~~~~~
 .. http:get:: /v1/entry/(int:entry_id)
-   
+
    Retrieve information of an entry specified by `entry_id`.
 
    :param entry_id: entry's unique id
@@ -131,7 +240,7 @@ Find entry by id
 Get entry taxonomy
 ~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/entry/(int:entry_id)/taxonomy
-   
+
    Retrieve the taxonomy of a specific entry.
 
    :param entry_id: entry's unique id
@@ -195,7 +304,7 @@ Submit new entry
 
    **Example response**:
 
-    .. sourcecode:: js 
+    .. sourcecode:: js
 
        {
            "message": "ok"
@@ -209,7 +318,7 @@ Edit existing entry
 ~~~~~~~~~~~~~~~~~~~
 .. http:put:: /v1/entry/(int:entry_id)
 
-    Edit taxonomy and/or fields of an existing entry. Request is same as `Submit new entry`_, but without a ``collection`` field. 
+    Edit taxonomy and/or fields of an existing entry. Request is same as `Submit new entry`_, but without a ``collection`` field.
 
     :param entry_id: unique id of entry
     :type entry_id: int
@@ -218,7 +327,7 @@ Edit existing entry
 
     .. sourcecode:: js
 
-        {  
+        {
             entryType: "challenge",
             description: "how to do software dev without cookies?",
             date: "Mon Sep 28 1998 14:36:22 GMT-0700 (PDT)",
@@ -226,7 +335,7 @@ Edit existing entry
                 "IMPROVING": ["cookies for software dev"],
                 "INFORMATION": ["hungry hungry devs"]
             }
-        } 
+        }
 
    :statuscode 400: entry_id must be an int
    :statuscode 403: must be member of at least one of the collections that own the entry
@@ -266,7 +375,7 @@ The password reset process is simple:
 
 .. http:post:: /v1/account/reset-password
 
-   Send a password reset request. Matches (1) in the description above. 
+   Send a password reset request. Matches (1) in the description above.
 
    :statuscode 200: ok
 
@@ -292,16 +401,16 @@ Check login status
    :statuscode 401: no not logged in
 
 Get friends of a user
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/account/friends
 
    :param email: entry's unique email
    :type email: String
-   
+
    .. sourcecode:: js
-	
+
    	  ["turtle@rock.gov", "zebra@afri.ca"]
-   
+
    :>json array emails: an array of emails related to the users email including the users email.
 
 Get collections
@@ -310,17 +419,20 @@ Get collections
 
    Query a list of collections that the currently authenticated user is a member of.
 
+   :param project: include only collections in this project
+   :type project: String
+
    :resheader Content-Type: application/json
 
    .. sourcecode:: js
 
-      [ { "name": "default", "id": 2 } ]
+      [ { "name": "rick's best systems", "id": 2 } ]
 
    :>jsonarr name: non-unique name of the collection
    :>jsonarr id: unique id of the collection
 
 Query self
-~~~~~~~~~~~~
+~~~~~~~~~~
 .. http:get:: /v1/account/self
 
    Get an at-a-glance snapshot of stats and data about the current user.
@@ -332,19 +444,17 @@ Query self
       {
          "email": "zoo@world.gov",
          "trust": "Admin",
-         "collection": 2,
          "collections": [COLLECTIONS]
          "entries": [ENTRIES]
       }
 
    :>json string email: user's email
    :>json string trust: trust level (see :ref:`trust`)
-   :>json integer collection: id of the user's default collection
    :>json array collections: An array of collection objects, equivalent to `Get collections`_
    :>json array entries: An array of approved/pending `Entry`_ objects this user has submitted.
 
 Logout
-~~~~~~~~~~~~~~
+~~~~~~
 .. http:post:: /v1/account/logout
 
    Logout this user and reset the session.
@@ -446,6 +556,25 @@ Get statistics
    :statuscode 400: id must be an integer
    :statuscode 404: no collection with that id exists
 
+Get collection project
+~~~~~~~~~~~~~~~~~~~~~~
+.. http:get:: /v1/collection/(int:id)/project
+
+   Query the project this collection extends.
+
+   :param id: collection id
+   :type id: int
+
+   .. sourcecode:: js
+
+      {
+         "name": "serp",
+         "link": "http://serpconnect.cs.lth.se"
+      }
+
+   :statuscode 400: id must be an integer
+   :statuscode 404: no collection with that id exists
+
 Get entries
 ~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/entries
@@ -474,7 +603,7 @@ Accept an invite
 
    :param id: collection id
    :type id: int
-   
+
    :statuscode 400: must provide id, id must be an integer, must be invited to that exception
    :statuscode 404: no collection with that id exists
 
@@ -488,7 +617,7 @@ Send an invite
 
    :param id: collection id
    :type id: int
-   
+
    :<json string name: name of the collection
 
    :statuscode 400: must provide id, id must be an integer
@@ -519,7 +648,7 @@ Remove an entry
 
    :param id: collection id
    :type id: int
-   
+
    :<json int entryId: id of entry to remove
 
    :statuscode 400: must provide id, id must be an integer
@@ -543,7 +672,7 @@ Add an existing entry
    :statuscode 401: must be logged in
    :statuscode 403: must be a member of the collection
    :statuscode 404: no collection with that id exists
-   
+
 Get members of a collection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. http:get:: /v1/collection/(int:id)/members
@@ -552,7 +681,7 @@ Get members of a collection
 
    :param id: collection id
    :type id: int
-   
+
    .. sourcecode:: js
 
       [User, ..., User]
@@ -569,12 +698,12 @@ Get the extended taxonomy
 .. http:get:: /v1/collection/(int:id)/taxonomy
 
    Query the extended taxonomy of this collection. `Facet`_ objects
-   returned by this query will reference the standard serp taxonomy, 
+   returned by this query will reference the standard serp taxonomy,
    which must be queried separately.
 
    :param id: collection id
    :type id: int
-   
+
    .. sourcecode:: js
 
       {
@@ -594,12 +723,12 @@ Update the extended taxonomy
 .. http:put:: /v1/collection/(int:id)/taxonomy
 
    Update the extended taxonomy.  The request will only pass if
-   the version is >= (greater than or equal to) the currently 
+   the version is >= (greater than or equal to) the currently
    stored version.
 
    :param id: collection id
    :type id: int
-   
+
    .. sourcecode:: js
 
       {
@@ -623,7 +752,7 @@ Reclassify some entities
 
    :param id: collection id
    :type id: int
-   
+
    .. sourcecode:: js
 
       {
@@ -649,7 +778,7 @@ Get all the entities
 
    :param id: collection id
    :type id: int
-   
+
    .. sourcecode:: js
 
       [
@@ -674,7 +803,7 @@ Query the classification
 
    :param id: collection id
    :type id: int
-   
+
    .. sourcecode:: js
 
       [
@@ -717,7 +846,7 @@ Only requests with an attached session id, where user's trust level is Admin, ar
    :statuscode 200: ok, return pending entries
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
-   
+
 .. http:get:: /v1/admin/collections
 
    Get all collections that the admin is NOT member of
@@ -746,16 +875,16 @@ Only requests with an attached session id, where user's trust level is Admin, ar
    :statuscode 404: no such collection exists
 
 .. http:get:: /v1/admin/collections-owned-by
-   
+
    Return names of all collections user is owner of
-   
-   :param email: email of the user 
-   
+
+   :param email: email of the user
+
    :statuscode 200: ok, return collections
    :statuscode 400: no email was given
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
-    
+
 
 .. http:post:: /v1/admin/accept-entry
 
@@ -782,24 +911,24 @@ Only requests with an attached session id, where user's trust level is Admin, ar
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
    :statuscode 404: no such entry exists
-   
+
 .. http:post:: /v1/admin/delete-user
-   
+
    Delete a user with a given email
-   
+
    :param email: email of the user to be deleted
-   
+
    :statuscode 200: ok, user got deleted
    :statuscode 400: no email was given
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
-    
+
 .. http:post:: /v1/admin/delete-entry
-   
+
    Delete entry with a given entry id
-   
+
    :param entryId: id of the entry
-   
+
    :statuscode 200: ok, entry got deleted
    :statuscode 400: entry is not an int
    :statuscode 401: user is not logged in
@@ -834,14 +963,14 @@ Only requests with an attached session id, where user's trust level is Admin, ar
    :statuscode 200: ok, return users
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin
-   
+
 .. http:get:: v1/admin/is-collection-owner
 
 	:param id: id of the collection
 	:type id: int
-	
+
 	Return true if the admin is owner of the collection
-	
-   :statuscode 200: ok, return boolean 
+
+   :statuscode 200: ok, return boolean
    :statuscode 401: user is not logged in
    :statuscode 403: user is not an admin

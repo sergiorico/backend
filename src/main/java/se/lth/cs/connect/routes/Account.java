@@ -61,11 +61,27 @@ public class Account extends BackendRouter {
         adminEmail = app.getPippoSettings().getString("administrator.email", "en");
     }
 
+    private List<GrNode> queryCollections(IDBAccess access, String email, String rel, String project) {
+        final JcNode coll = new JcNode("coll");
+        final JcNode proj = new JcNode("proj");
+        return Database.query(access, new IClause[]{
+            MATCH.node(proj).label("project")
+                .property("name").value(project),
+            MATCH.node().label("user").property("email").value(email)
+                .relation().type(rel)
+                .node(coll).label("collection")
+                .relation().type("EXTENDS")
+                .node(proj),
+            RETURN.DISTINCT().value(coll)
+        }).resultOf(coll);
+    }
+
     private List<GrNode> queryCollections(IDBAccess access, String email, String rel) {
         final JcNode coll = new JcNode("coll");
         return Database.query(access, new IClause[]{
             MATCH.node().label("user").property("email").value(email)
-                .relation().type(rel).node(coll).label("collection"),
+                .relation().type(rel)
+                .node(coll).label("collection"),
             RETURN.DISTINCT().value(coll)
         }).resultOf(coll);
     }
@@ -114,7 +130,8 @@ public class Account extends BackendRouter {
                 .replace("{hostname}", hostname);
 
             app.getMailClient().
-            	sendEmail(email, "SERP connect registration", message);
+                sendEmail(email, "SERP connect registration", message);
+
 
             rc.resetSession();
             rc.setSession("email", email);
@@ -232,10 +249,30 @@ public class Account extends BackendRouter {
         	rc.json().send(res.toArray());
         });
 
-        // GET api.serp.se/v1/account/self HTTP/1.1
+        // GET /account/collections?project=xyz
+        // --> [ {collection}, ..., {collection} ]
         GET("/collections", (rc) -> {
-            final List<GrNode> groups = queryCollections(rc.getLocal("db"), rc.getSession("email"), "MEMBER_OF");
+            if (rc.getParameter("project").isEmpty())
+                throw new RequestException("Must include 'project' parameter.");
+            final String project = rc.getParameter("project").toString();
+            final List<GrNode> groups = queryCollections(rc.getLocal("db"), rc.getSession("email"), "MEMBER_OF", project);
             rc.status(200).json().send(Graph.Collection.fromList(groups));
+        });
+
+        // GET /account/projects
+        // --> [ { name:"", link: "" }, ..., { name:"", link:"" } ]
+        GET("/projects", (rc) -> {
+            final String email = rc.getSession("email");
+
+            JcNode p = new JcNode("p");
+            List<GrNode> projects = Database.query(rc.getLocal("db"), new IClause[]{
+                MATCH.node().label("user").property("email").value(email)
+                    .relation().in().type("CREATED_BY")
+                    .node(p).label("project"),
+                RETURN.value(p)
+            }).resultOf(p);
+
+            rc.json().send(Graph.Project.fromList(projects));
         });
 
         // GET api.serp.se/v1/account/self HTTP/1.1
@@ -287,11 +324,15 @@ public class Account extends BackendRouter {
             rc.getResponse().ok();
         });
 
-        // GET api.serp.se/v1/account/invites HTTP/1.1
+        // GET /account/invites?project=xyz
+        // --> [ {collection}, ..., {collection} ]
         GET("/invites", (rc) -> {
             final String email = rc.getSession("email");
-            final List<GrNode> groups = queryCollections(rc.getLocal("db"), email, "INVITE");
-            rc.json().send(Graph.Collection.fromList(groups));
+            if (rc.getParameter("project").isEmpty())
+                throw new RequestException("Must include 'project' parameter.");
+            final String project = rc.getParameter("project").toString();
+            final List<GrNode> collections = queryCollections(rc.getLocal("db"), email, "INVITE", project);
+            rc.json().send(Graph.Collection.fromList(collections));
         });
 
         // GET api.serp.se/v1/account/some@email.com HTTP/1.1
@@ -318,14 +359,12 @@ public class Account extends BackendRouter {
 
     private static class UserDetails {
         public String email, trust;
-        public int collection;
         public Graph.Node[] entries;
         public Graph.Collection[] collections;
 
         public UserDetails(AccountSystem.Account user, List<GrNode> coll) {
             this.email = user.email;
             this.trust = TrustLevel.toString(user.trust);
-            this.collection = user.defaultCollection;
             this.collections = Graph.Collection.fromList(coll);
         }
 

@@ -4,36 +4,78 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Random;
 
-import org.junit.After;
-
+import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.builder.RequestSpecBuilder ;
+import com.jayway.restassured.filter.session.SessionFilter;
+import com.jayway.restassured.specification.RequestSpecification;
 
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 
-import com.jayway.restassured.filter.session.SessionFilter;
-
 import iot.jcypher.database.IDBAccess;
+import iot.jcypher.query.api.IClause;
+import iot.jcypher.query.factories.clause.CREATE;
+import iot.jcypher.query.factories.clause.MATCH;
+import iot.jcypher.query.factories.clause.NATIVE;
+import iot.jcypher.query.values.JcNode;
 import ro.pippo.core.PippoConstants;
 import ro.pippo.test.PippoRule;
 import ro.pippo.test.PippoTest;
 import se.lth.cs.connect.modules.Database;
+import se.lth.cs.connect.modules.AccountSystem;
 import se.lth.cs.connect.modules.MailClient;
 import utils.URLParser;
 
 public class APITest extends PippoTest {
+    // Adds required parameters; use only for non-json requests!
+    public RequestSpecification paramReqSpec;
+
 	public SessionFilter userSession = new SessionFilter();
 	public String email = "";
 	public String passw = "";
 
+    public String adminEmail = "";
+    public String adminPassw = "";
+
+    // Each test has a different, randomised project name
+    public String project = "";
+
     public String collection = "x";
     public long collectionId = -1;
-	
+
     // This rule ensures that we have a server running before doing the tests
 	public Connect app = new Connect();
 
 	@Rule
-	public PippoRule pippoRule = new PippoRule(app);
+	public PippoRule pippoRule = new PippoRule(app, 8080);
+
+    public long submitEntry(SessionFilter user, long collectionId, String entry) {
+        String id = given().
+            contentType("application/json").
+            filter(user).
+            body(entry).
+        expect().
+            statusCode(200).
+            contentType("application/json").
+        when().
+            post("v1/entry/new").
+        andReturn().
+            jsonPath().getString("id");
+        return Long.parseLong(id);
+    }
+    public long submitEntry(SessionFilter user, long collectionId) {
+        // Add entry. json String can be whatever as long as it is a valid json String for an entry.
+        String facet = APITest.getRandomString();
+
+        String json = "{ \"entryType\": \"challenge\", " +
+            "\"description\": \"test\", " +
+            "\"serpClassification\": { \"improving\": [\"" + facet + "\"] }, " +
+            "\"collection\": " + collectionId + ", " +
+            "\"project\": \"" + project + "\" " +
+        " }";
+        return submitEntry(user, collectionId, json);
+    }
 
     public SessionFilter registerUser(SessionFilter sf, String email, String passw) {
         given().
@@ -52,20 +94,17 @@ public class APITest extends PippoTest {
     }
 
 	public String verifyUser(Mailbox mailbox) throws UnsupportedEncodingException{
-		String verify = URLParser.find(mailbox.top().content);
+        String verify = URLParser.find(mailbox.top().content);
 		verify = verify.substring(verify.indexOf("token=") + 6);
 		verify = URLDecoder.decode(verify, PippoConstants.UTF8);
-		
+
         given().
-			param("token", verify).
-		expect().
-			statusCode(200).
-		when().
-			get("/v1/account/verify");
-		
+            param("token", verify).
+        when().
+            redirects().follow(false).get("/v1/account/verify");
 		return verify;
 	}
-	
+
 	public static String getRandomString() {
         final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
         StringBuilder salt = new StringBuilder();
@@ -91,10 +130,11 @@ public class APITest extends PippoTest {
 		}
 		app.useMailClient(client);
     }
-	
+
     public long setupCollection(SessionFilter sf, String name) {
         final String id = given().
             filter(sf).
+            param("project", project).
             param("name", name).
         expect().
             statusCode(200).
@@ -105,16 +145,51 @@ public class APITest extends PippoTest {
         return Long.parseLong(id);
     }
 
+    public void setupProject(String email, String passw, String name, String link) {
+        SessionFilter auth = new SessionFilter();
+        given().
+            filter(auth).
+            param("email", email).
+            param("passw", passw).
+        expect().
+            statusCode(200).
+        when().
+            post("/v1/account/login");
+
+        given().
+            filter(auth).
+            param("name", name).
+            param("link", link).
+        expect().statusCode(200).
+        when().post("/v1/project");
+    }
+
+    private void setupConstraints() {
+        Database.query(Database.access(), new IClause[]{
+            NATIVE.cypher("CREATE CONSTRAINT ON (p:project) ASSERT p.name IS UNIQUE")
+        });
+    }
+
 	@Before
 	public void setUp() {
+        app.useMailClient(new Mailbox());
+        setupConstraints();
+
         email = getRandomString() + "@" + getRandomString() + ".com";
-		passw = getRandomString();
-		setupUser(userSession, email, passw);
-		
+        passw = getRandomString();
+        setupUser(userSession, email, passw);
+
+        adminEmail = getRandomString() + "@" + getRandomString() + ".com";
+        adminPassw = getRandomString();
+        AccountSystem.createAccount(adminEmail, adminPassw, TrustLevel.ADMIN);
+
+        project = getRandomString();
+        setupProject(adminEmail, adminPassw, project, "http://serpconnect.cs.lth.se");
+
         collection = getRandomString();
         collectionId = setupCollection(userSession, collection);
 	}
-	
+
 	@AfterClass
 	public static void afterClass() {
 		IDBAccess access = Database.access();

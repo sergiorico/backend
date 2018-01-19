@@ -6,9 +6,7 @@ import java.util.regex.Pattern;
 public class URLParser {
 	// Pattern for recognizing a URL, based off RFC 3986
 	private static final Pattern urlPattern = Pattern.compile(
-	        "(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
-	                + "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
-	                + "[\\p{Alnum}.,%_=?&#\\-+()\\[\\]\\*$~@!:/{};']*)",
+			"(http(s?):\\/\\/[^\\s]+)",
 	        Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
 
 	/**

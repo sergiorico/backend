@@ -7,16 +7,10 @@ import static org.junit.Assert.assertThat;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.Random;
 
-import org.junit.Before;
 import org.junit.Test;
 
-import com.jayway.restassured.filter.session.SessionFilter;
-
 import ro.pippo.core.PippoConstants;
-import se.lth.cs.connect.Mailbox;
-import se.lth.cs.connect.modules.MailClient;
 
 public class ITUserAPI extends APITest {
 
@@ -25,14 +19,14 @@ public class ITUserAPI extends APITest {
 		// These routes require an active session => requests should be denied
 		// Status code 401 => all is ok (expected)
 		// Any other code means that we have an error somewhere.
-		when().get("/v1/account/login").then().statusCode(401);
-		when().get("/v1/account/collections").then().statusCode(401);
-		when().get("/v1/account/self").then().statusCode(401);
-		when().post("/v1/account/logout").then().statusCode(401);
-		when().post("/v1/account/delete").then().statusCode(401);
-		when().post("/v1/account/change-password").then().statusCode(401);
-		when().get("/v1/account/invites").then().statusCode(401);
-		when().get("/v1/account/dat12asm@student.lu.se").then().statusCode(401);
+		expect().statusCode(401).when().get("/v1/account/login");
+		expect().statusCode(401).when().get("/v1/account/collections");
+		expect().statusCode(401).when().get("/v1/account/self");
+		expect().statusCode(401).when().post("/v1/account/logout");
+		expect().statusCode(401).when().post("/v1/account/delete");
+		expect().statusCode(401).when().post("/v1/account/change-password");
+		expect().statusCode(401).when().get("/v1/account/invites");
+		expect().statusCode(401).when().get("/v1/account/dat12asm@student.lu.se");
 	}
 
 	/**
@@ -57,13 +51,13 @@ public class ITUserAPI extends APITest {
 		// Use mailbox to capture emails instead of sending them
 		Mailbox mailbox = new Mailbox();
 		app.useMailClient(mailbox);
-		
+
 		registerUser("test-reg@a.b", "1234");
-	
+
 		assertThat("Must send registration email", mailbox.getInbox().size(), is(1));
 		assertThat("Recipient must match registered email",
 				mailbox.top().recipient, is(equalTo("test-reg@a.b")));
-		
+
 		String verify = verifyUser(mailbox);
 		assertThat("Must find link in email", verify, not(equalTo("")));
 
@@ -101,13 +95,13 @@ public class ITUserAPI extends APITest {
 		then().
 			statusCode(200);
 	}
-	
+
 	// This testcase might break if format of the reset password email is changed
 	@Test
 	public void testResetPassword() throws UnsupportedEncodingException{
 		Mailbox mailbox = new Mailbox();
 		app.useMailClient(mailbox);
-				
+
 		//logout
 		given().
 			filter(userSession).
@@ -115,7 +109,7 @@ public class ITUserAPI extends APITest {
 			post("/v1/account/logout").
 		then().
 			statusCode(200);
-		
+
 		//ask for reset email
 		given().
 			param("email", email).
@@ -123,7 +117,7 @@ public class ITUserAPI extends APITest {
 			statusCode(200).
 		when().
 			post("/v1/account/reset-password");
-		
+
 		//filter mail for the token
 		Mailbox.Mail test = mailbox.top();
 		String[] split = test.content.split("token=");
@@ -150,7 +144,7 @@ public class ITUserAPI extends APITest {
 			statusCode(200).
 		when().
 			post("/v1/account/reset-password-confirm");
-	
+
 		//session gets wrecked by redirect no need to logout
 
 		//login with new password
@@ -163,6 +157,6 @@ public class ITUserAPI extends APITest {
 		then().
 			statusCode(200);
 	}
-	
-	
+
+
 }

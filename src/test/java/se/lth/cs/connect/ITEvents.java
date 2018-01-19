@@ -1,21 +1,12 @@
 package se.lth.cs.connect;
 
-import org.junit.Test;
-
-import java.util.List;
-
-
-import org.junit.Before;
-import static org.junit.Assert.assertTrue;
-
-import com.fasterxml.jackson.core.JsonParseException;
 import com.jayway.restassured.filter.session.SessionFilter;
 
-import se.lth.cs.connect.events.*;
+import org.junit.Before;
+import org.junit.Test;
 
-
-
-import utils.URLParser;
+import se.lth.cs.connect.events.DetachEntryEvent;
+import se.lth.cs.connect.events.LeaveCollectionEvent;
 
 
 public class ITEvents extends APITest {
@@ -26,15 +17,16 @@ public class ITEvents extends APITest {
         super.setUp();
         basePath = "/v1/collection/" + collectionId;
     }
-    
+
     @Test
     public void entryWithoutCollectionShouldDie() {
-        String entryJson =  "{ \"entryType\": \"challenge\", " + 
+        String entryJson =  "{ \"entryType\": \"challenge\", " +
             "\"description\": \"test\", " +
             "\"serpClassification\": { }, " +
-            "\"collection\": " + collectionId + 
+            "\"project\": \"" + project + "\", " +
+            "\"collection\": " + collectionId +
         " }";
-		long entryId = ITCollectionAPI.submitEntry(userSession, collectionId, entryJson);
+		long entryId = submitEntry(userSession, collectionId, entryJson);
 
         new DetachEntryEvent(collectionId, entryId).execute();;
 
@@ -43,7 +35,7 @@ public class ITEvents extends APITest {
 
     @Test
     public void testCollectionNuke() {
-		long entryID = ITCollectionAPI.submitEntry(userSession, collectionId);
+		long entryID = submitEntry(userSession, collectionId);
 
         String user2 = APITest.getRandomString();
         SessionFilter sf2 = new SessionFilter();
@@ -52,7 +44,7 @@ public class ITEvents extends APITest {
         app.useMailClient(new Mailbox());
         given().
             filter(userSession).
-            param("email", new String[]{user2}).
+            param("email", user2).
         when().
             post(basePath + "/invite").
         then().

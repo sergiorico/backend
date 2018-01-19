@@ -13,9 +13,17 @@ Prerequisites
 Compiling
 ---------
 
-How to compile the server.
+ - `git clone https://github.com/serpconnect/backend`
+ - `cd backend`
+ - `mvn compile package`
+ - The compiled server is now in `target/connect-X.Y.Z.zip`
 
 Deploying
 ---------
 
-How to deploy the project.
+ - Assuming `connect-X.Y.Z.zip` and `application.properties` are in current dir.
+ - `unzip connect-X.Y.Z.zip`
+ - `cp application.properties connect-X.Y.Z`
+ - `cd connect-X.Y.Z`
+ - `java -jar connect.jar`
+ - The server is now running using the external configuration. If no config. file is present the embedded is used instead.
