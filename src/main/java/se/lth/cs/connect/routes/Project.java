@@ -213,8 +213,7 @@ public class Project extends BackendRouter {
         // POST /project/xyz/delete
         POST("/{name}/delete", (rc) -> {
             authorize(rc, rc.getParameter("name").toString());
-            rc.getResponse().ok();
-            // delete ok
+            throw new RequestException(500, "Not yet implemented!");
         });
 
         // PUT /project/xyz/taxonomy

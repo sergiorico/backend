@@ -60,14 +60,22 @@ public class TaxonomyDB {
         collectionsPath = dbPath + "/collections";
     }
 
+    /**
+     * Since we are reading from the file system, stop any path haxxing...
+     */
+    private static boolean checkPath(String name) {
+        if (name.contains(".")) return false;
+        if (name.contains("/")) return false;
+        return true;
+    }
+
     public static String collection(long collectionId) {
         return collectionsPath + "/" + "c-" + collectionId + ".json";
     }
 
-    /**
-     * Read the taxonomy of a project: serp, serp-test, serp-rto, ...
-     */
     public static String project(String pname) {
+        if (!checkPath(pname))
+            throw new RequestException(500, "Invalid project name");
         return projectsPath + "/" + pname + ".json";
     }
 
