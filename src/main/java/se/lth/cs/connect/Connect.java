@@ -26,6 +26,8 @@ public class Connect extends Application {
 
 	static final String[] CORS_ORIGINS = new String[] { 
 		"http://localhost:8181", 
+		"http://localhost:8182",
+		"https://localhost:8182",  
 		"https://localhost:8181", 
 		"http://localhost:8080",
 

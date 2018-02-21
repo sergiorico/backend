@@ -32,7 +32,7 @@ public class TaxonomyDB {
     static String collectionsPath;
 
     public static class Facet {
-    	public String name, id, parent;
+    	public String name, id, parent, desc;
     }
 
     public static class Taxonomy {

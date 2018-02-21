@@ -1,4 +1,6 @@
-{
-    "taxonomy": [{"id":"EFFECT","name":"Effect","parent":"root"},{"id":"SCOPE","name":"Scope","parent":"root"},{"id":"CONTEXT","name":"Context","parent":"root"},{"id":"INTERVENTION","name":"Intervention","parent":"root"}],
-    "version": 1
-}
+
+{"taxonomy":[{"name":"Effect","id":"EFFECT","parent":"root","desc":"a short statement of what should be achieved by an intervention. An effect entity is correspondingly a statement of a measured effect"},
+	{"name":"Scope","id":"SCOPE","parent":"root","desc":"the extent of the effect, intended or measured, on the test process. Correspondingly the scope of the challenge describes which part of the testing process is primarily affected by the challenge or desired improvement"},
+	{"name":"Context","id":"CONTEXT","parent":"root","desc":"describes factors restricting the applicability of an intervention"},
+	{"name":"Intervention","id":"INTERVENTION","parent":"root","desc":"an act performed (e.g., use of a technique or a process change) to adapt testing to a specific context, to solve a test issue, to assess testing or to improve testing"}],
+"version":1}
