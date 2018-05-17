@@ -1,12 +1,15 @@
 Getting Started
 ===============
 
-This file is dedicated to getting you ready to start developing. If you have questions, head over to our [slack](https://serp-group.slack.com) channel and fire away! 
+This page is dedicated to getting you ready to start developing. If you have questions, head over to our [slack](https://serp-group.slack.com) channel and fire away!
+
+There are two different systems that must be installed in order for you to have a _complete_ development setup: _backend_ and _frontend_. It is possible, however, to skip the local _backend_ installation and instead use a shared testing backend hosted on lth. If you are only interested in frontend work then this is a good idea and you can skip the _backend_ part entirely.
 
 ## Backend
 
-We start with the backend, simply because it is required for you to have any functionality on the frontend. A high-level checklist is:
+The backend is a web server programmed in Java, uses [maven](https://maven.apache.org/) as project management (dependency & build) and [neo4j](https://neo4j.com) as database. To simplify the development we build upon [pippo](http://www.pippo.ro), a small web server framework.
 
+In order to get the backend up and running you need to complete these steps:
  - install java 8 (sdk & jre)
  - install maven version 3
  - install neo4j version 2.X.Y
@@ -14,10 +17,8 @@ We start with the backend, simply because it is required for you to have any fun
  - update password in `application.properties` in repo.
  - start with `mvn exec:java -Dpippo.mode=dev`
 
-### Setting up the backend
-
-#### java 8
-Java 8 (SDK & JRE) is required. Almost all os have a standard way of installing and upgrading java. These guides may work for you, but ideally you should look it up.
+### install java 8
+Java 8 (SDK & JRE) is required. Almost all os have a standard way of installing and upgrading java. These guides may work for you, but ideally you should look it up yourself.
 
 Test if you already have java 8 by running (any os):
  - JRE: `java -version`
@@ -32,10 +33,21 @@ Test if you already have java 8 by running (any os):
 **os x/mac os**: install [homebrew](https://brew.sh/), then `brew install java`
 
 **other linux**
- - try the default package manager
+ - try the default package manager (apt-get, yum, ...)
  - otherwise [check this out](http://openjdk.java.net/install/)
 
-#### neo4j
+### maven
+Maven is a java package manager, amongst other things. We use version 3.
+
+**mac**: install [homebrew](https://brew.sh/), then `brew install maven30`
+
+**general**
+
+Try your luck with the package manager, otherwise these links are handy:
+ - [download](https://maven.apache.org/download.cgi)
+ - [install](https://maven.apache.org/install.html)
+
+### install neo4j
 Install the **community edition**, **version 2.3.X** where X is the highest you can find. Again, the installation process depends on your os/environment. Here is the [official documentation](https://neo4j.com/docs/operations-manual/current/installation/). Below are summaries:
 
 **ubuntu/debian**
@@ -64,49 +76,35 @@ Install the **community edition**, **version 2.3.X** where X is the highest you 
 
 After installation you should start a neo4j server and navigate to `http://localhost:7474` and login using neo4j/neo4j. Choose a new password, **and remember it**. You _will_ need it later on.
 
-#### maven
-Maven is a java package manager, amongst other things. We use version 3.
-
-**mac**: install [homebrew](https://brew.sh/), then `brew install maven30`
-
-**general**
-
-Try your luck with the package manager, otherwise these links are handy:
- - [download](https://maven.apache.org/download.cgi)
- - [install](https://maven.apache.org/install.html)
-
 ### First steps
 
-After all required software has been installed you are ready to proceed.
+After all required software has been installed you are ready to proceed. Here is a breakdown to get your installation configured:
 
- - Strap up! `cd ~`
- - Organise `mkdir connect && cd ~/connect`
- - Clone `git clone git@github.com:emenlu/connect.git backend`
- - Charge in `cd backend`
- - Open `src/main/resources/conf/application.properties` in your editor of choice
- - Change `neo4j.password` to what you entered previously in the web ui
- - Then run `mvn compile exec:java`
- - The backend will now create a superuser and initialize the database. **(Make sure neo4j is running!)**
+```bash
+cd ~
+mkdir connect
+cd ~/connect
+git clone git@github.com:serpconnect/backend.git
+cd backend
+# vim/subl/code/nano src/main/resources/conf/application.properties
+# set neo4j.password to the new password you entered previously 
+mvn compile exec:java -Dpippo.mode=dev
+```
 
 Et voilà, you are ready!
 
-In the future, run `mvn compile exec:java -Dpippo.mode=dev`. It executaes both commands sequentially and launches the server in dev mode.
-
-### Eclipse
-To use Eclipse, simply import the backend files as a github repository. We recommend using a maven plugin to facilitate running the server.
+(If you want to use Eclipse or IntelliJ, simply import the backend files as a github repository. We recommend using a maven plugin to facilitate running the server.)
 
 ## Frontend
 
 The frontend project is often much simpler to install since it only depends on nodejs, thus this section is mainly on how to install nodejs. The high-level checklist is:
 
  - install nodejs (v5 or v6)
- - run `npm install` in repo.
- - run `make dev`
- - browse to `localhost:8181`
+ - install packages (`npm install`)
+ - run `npm run dev` or `npm run live`
+ - browse to the address that was written in your terminal (e.g. `localhost:8181`)
 
-### Setting up the frontend
-
-#### installing nodejs
+### installing nodejs
 
 The frontend relies on nodejs to compile page templates and style files. Node.js has its own package manager, called `npm`, which lists dependencies in a `package.json` file. Thus the only programs you need to manually install are `npm` and `node`. Thankfully, `npm` is bundled with `node` so installing `node` is sufficient.
 
@@ -131,8 +129,7 @@ Most popular linux distros have up-to-date packages of `node` and this is the ea
 
 If this fails you must download a tarball and put `node` and `npm` into `/usr/bin` or similar. Some linuxes have a program called `alternative` to symlink files into `/usr/bin`.
 
-#### installing packages
+### installing packages
 
-Type `npm install` in the repository to install all dependencies. Then try to run the dev. server using `make dev`. If this fails, report to Axel. Otherwise you are good to go!
-
+Type `npm install` in the repository to install all dependencies. Then try to run the dev. server using `npm run dev`. If this fails, report this in the slack channel. Otherwise you are good to go!
 
