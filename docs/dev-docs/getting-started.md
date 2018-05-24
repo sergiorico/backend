@@ -39,9 +39,9 @@ Test if you already have java 8 by running (any os):
 Install the **community edition**, **version 2.3.X** where X is the highest you can find. Again, the installation process depends on your os/environment. Here is the [official documentation](https://neo4j.com/docs/operations-manual/current/installation/). Below are summaries:
 
 **ubuntu/debian**
- - install neo4j via apt-get ([instructions](http://debian.neo4j.org/))
- - run `system neo4j start` to start
- - run `system neo4j stop` to stop
+ - install neo4j via apt-get ([instructions](https://neo4j.com/docs/operations-manual/current/installation/linux/debian/?_ga=2.52622504.107982304.1527148038-1465239262.1527148038))
+ - run `systemctl neo4j start` to start
+ - run `systemctl neo4j stop` to stop
 
 **windows**
  - download the installer (.exe) [from legacy](https://neo4j.com/download/other-releases/)
